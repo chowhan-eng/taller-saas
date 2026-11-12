@@ -1,0 +1,59 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "AutoReplyLog",
+  "type": "object",
+  "description": "Every AI receptionist decision (no message text: minimisation). Ported from WhatsApp Inbox Pro AutoReplyLog.",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Conversation id (same tenant; enforced in backend functions)"
+    },
+    "mode_at_time": {
+      "type": "string",
+      "enum": [
+        "off",
+        "shadow",
+        "live"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "would_send",
+        "blocked"
+      ]
+    },
+    "decision_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "category": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "wa_message_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "conversation_id",
+    "decision"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

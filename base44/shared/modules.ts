@@ -1,7 +1,7 @@
 // Plan gating for the three packaged apps. Single source of truth: change entitlements HERE only.
 //   Starter (39 €/mes) = WhatsApp Pro (auto-avisos, recepcionista IA, reseñas)
 //   Pro     (79 €/mes) = WhatsApp Pro + Reparo (tickets/CRM) + TPV (caja)
-import type { Entities, Row } from './db.ts';
+import { find, type Entities, type Row } from './db.ts';
 import { membership } from './tenancy.ts';
 
 export type ModuleCode = 'whatsapp' | 'reparo' | 'tpv';
@@ -36,7 +36,7 @@ export async function gateModule(
   if (typeof tenantId !== 'string' || !tenantId) return { ok: false, status: 404, error: 'Taller no encontrado' };
   const member = await membership(db, tenantId, userId);
   if (!member) return { ok: false, status: 403, error: 'No tienes acceso a este taller.' };
-  const [tenant] = await db.Tenant.filter({ id: tenantId }, undefined, 1);
+  const [tenant] = await find(db.Tenant, { id: tenantId }, { limit: 1 });
   if (!tenant) return { ok: false, status: 404, error: 'Taller no encontrado' };
   if (!entitlementsFor(tenant.plan, tenant.status).includes(module)) {
     return { ok: false, status: 402, error: 'Tu plan no incluye este módulo. Pásate a Pro para activarlo.' };

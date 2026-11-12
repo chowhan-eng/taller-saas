@@ -5,7 +5,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk';
 import { secrets } from 'base44:runtime';
 import { json, withJsonErrors } from '../../shared/http.ts';
 import { mapSubStatus, mapTenantStatus, stripeClient, stripeCrypto, type Stripe } from '../../shared/stripe.ts';
-import type { Entities } from '../../shared/db.ts';
+import { find, type Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('stripeWebhook', async (req) => {
   const secret = secrets.get('STRIPE_WEBHOOK_SECRET');
@@ -68,7 +68,7 @@ async function syncSubscription(db: Entities, sub: Stripe.Subscription, tenantHi
     // Once a trial has started it is spent, even if the shop cancels and comes back (checkout checks this).
     ...(sub.trial_start ? { trial_used: true } : {}),
   };
-  const [existing] = await db.Subscription.filter({ tenant_id: tenantId }, undefined, 1);
+  const [existing] = await find(db.Subscription, { tenant_id: tenantId }, { limit: 1 });
   if (existing) await db.Subscription.update(existing.id, row);
   else await db.Subscription.create(row);
 

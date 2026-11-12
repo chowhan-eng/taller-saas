@@ -3,7 +3,7 @@
 //     during the trial (stops Meta API abuse with throwaway trials).
 //   * Daily cap: Tenant.wa_daily_cap (default 250) per Europe/Madrid day, any plan.
 //   * Kill-switch: Tenant.wa_paused blocks everything.
-import type { Entities, Row } from './db.ts';
+import { find, type Entities, type Row } from './db.ts';
 import { parseTs } from './http.ts';
 
 export const TRIAL_DAYS = 14;
@@ -16,7 +16,7 @@ export type QuotaDecision =
   | { ok: true; trial: boolean; usedInTrial: number; remainingInTrial: number | null }
   | { ok: false; reason: 'paused' | 'trial_cap' | 'daily_cap'; error: string };
 
-function madridDayStart(now: Date): number {
+export function madridDayStart(now: Date): number {
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   }).formatToParts(now).map((x) => [x.type, x.value]));
@@ -60,8 +60,8 @@ export function decideQuota(
  * 49 can both pass: the cap can be exceeded by the number of concurrent sends, never more.
  */
 export async function checkWhatsappQuota(db: Entities, tenant: Row, now = new Date()): Promise<QuotaDecision> {
-  const [subscription] = await db.Subscription.filter({ tenant_id: tenant.id }, undefined, 1);
+  const [subscription] = await find(db.Subscription, { tenant_id: tenant.id }, { limit: 1 });
   const window = Math.max(TRIAL_WA_CAP, Number(tenant.wa_daily_cap ?? 250)) + 1;
-  const outbound = await db.WhatsappLog.filter({ tenant_id: tenant.id, direction: 'outbound' }, '-created_date', window);
+  const outbound = await find(db.WhatsappLog, { tenant_id: tenant.id, direction: 'outbound' }, { sort: '-created_date', limit: window });
   return decideQuota(tenant, subscription ?? null, outbound, now);
 }

@@ -28,7 +28,9 @@ The brief asked for `.app.jsonc`, `functions/`, `public/`, `db/`. They exist, bu
 | `checkout` | owner | `/api/checkout` + **14-day Starter trial** |
 | `stripeWebhook` | Stripe signature | `/api/stripe/webhook` (only place that changes plan/status) |
 | `entitlements` | member | new: modules the shop may use |
-| `whatsapp` / `reparo` / `tpv` | member + plan | new: gated module routers (scaffold) |
+| `whatsappWebhook` | Meta signature | WhatsApp Inbox Pro `whatsappWebhook`: inbound, receipts, BAJA/STOP, AI receptionist (see §8) |
+| `whatsapp` | member + plan | send, AI draft, pause bot, quota, settings (WhatsApp Inbox Pro `sendMessage` + `generateDraft`) |
+| `reparo` / `tpv` | member + plan | gated module routers (scaffold) |
 | `seedPriceTemplates` | app admin | seed `INSERT` of 24 prices |
 
 **Plan gating (`shared/modules.ts`, single source of truth):** Starter = `whatsapp`; Pro = `whatsapp`, `reparo`, `tpv`. Every module call runs `gateModule()` in this order:
@@ -46,7 +48,7 @@ The brief asked for `.app.jsonc`, `functions/`, `public/`, `db/`. They exist, bu
 - **Card upfront:** `payment_method_collection: 'always'`. If the card is missing when the trial ends, the subscription is cancelled (`missing_payment_method: 'cancel'`).
 - **Status mapping:** `trialing` maps the tenant to `active`.
 - **Trial cap (`shared/waQuota.ts`):** at most **50 outbound WhatsApp messages** while the subscription is `trialing`. `blocked_*` attempts don't count. The daily cap `wa_daily_cap` (default 250) and the `wa_paused` kill-switch apply on every plan.
-- **⚠️ Who must call the cap:** the WhatsApp send path is not ported yet. When it is, it **must** call `checkWhatsappQuota()` before every send. Today only the `whatsapp` → `quota` action calls it.
+- **Where the cap is enforced:** `shared/waSend.ts` `sendWhatsapp()`, the only send path (manual sends and AI replies), calls `checkWhatsappQuota()` before any Meta request. Tested, including a mutation check that removing the call fails the tests.
 - **Race limit:** there are no transactions, so concurrent sends at message 49 can each pass. The overshoot is bounded by the number of concurrent sends.
 - **Stripe setting:** in the Stripe Dashboard, turn on the email reminder before a trial ends (Billing → Subscriptions → "Send reminder emails"). Spanish consumer practice expects a warning before the first charge.
 
@@ -127,3 +129,59 @@ Then:
 - **Security headers.** `next.config.mjs` used to set `X-Frame-Options` and `nosniff`. Static hosting can't set headers, so only the referrer policy survives, as a meta tag.
 - **Scraper.** `automation/scraper_talleres.py` still has its optional Supabase upsert. Point it at the `Lead` entity (via a function) before using it.
 - **Docs 02, 03 and 05** still describe Supabase. This doc overrides them where they differ.
+
+## 8. WhatsApp engine (ported from WhatsApp Inbox Pro)
+
+**Source.** WhatsApp Inbox Pro, the founder's live Base44 app. The ported pieces:
+- `whatsappWebhook`
+- `sendMessage`
+- `generateDraft`
+- `evaluateAutoReply`
+- the Gemini "free LLM" helper
+
+They're now multi-tenant and encrypted:
+- **One webhook for all shops.** It's routed by `metadata.phone_number_id` → `Tenant.wa_phone_number_id`. Numbers that belong to no shop, such as the platform demo number, are ignored.
+- **Inbound** (`shared/waInbound.ts`):
+  - fail-closed `X-Hub-Signature-256` check
+  - idempotency on the Meta message id
+  - reactions attached to their target message
+  - find-or-create thread with a re-check before insert
+  - 24 h service window, unread counters, reopening resolved/spam threads
+  - delivery receipts
+- **Opt-out** (`shared/optout.ts`): **strictly** the whole message `BAJA` or `STOP`, ignoring case, accents and punctuation. "no", "no gracias" and "stop por favor" are not opt-outs. Note that the live app also accepts "darme de baja", "dame de baja", "unsubscribe" and "no más mensajes"; this port does **not**, as you asked. An opt-out creates the Customer record if it doesn't exist, so every later send is blocked.
+- **Outbound** (`shared/waSend.ts`, the ONLY send path), in this order:
+  1. `checkWhatsappQuota()` (trial cap 50, daily cap, kill-switch)
+  2. opt-out block
+  3. idempotency key
+  4. opening hours for `automated` sends
+  5. credentials: the shop token (`Tenant.wa_access_token_enc`, encrypted) or the platform `META_ACCESS_TOKEN`
+  6. session text inside 24 h, `Tenant.wa_fallback_template` outside it, and a 131047 → template retry
+  7. stored as ciphertext
+- **AI receptionist** (`shared/receptionist.ts`):
+  - **Inputs:** the decrypted last 20 messages, the shop persona, its opening hours and its own `PriceItem` list.
+  - **Decision:** `off` / `shadow` / `live`, minimum confidence, requires-human, blocked categories (complaint, warranty, quote negotiation, other), the daily auto-reply cap (fails closed), and the per-conversation pause and disable switches.
+  - **Sending:** live replies go through `sendWhatsapp()`, so the trial cap applies to the bot too.
+  - **Logging:** `AutoReplyLog` stores no message text.
+- **What's encrypted:**
+  - Conversation phone, name, preview and AI draft
+  - message phones and text
+  - the shop's Meta token
+  - lookups use the phone blind index
+- **Query lesson from the live app:** the 3-argument `filter(query, sort, limit)` threw in SDK 0.8.3x. Every query now goes through `shared/db.ts` `find()` (1-argument filter, then sort and limit in JS).
+
+**Not ported:**
+- the knowledge base and embeddings (RAG)
+- customer-insight memory
+- chatbot flows
+- broadcasts, NPS and scheduled messages
+- push and alert notifications
+- the HelloClient/RepairCache lookups
+- media download (the Meta `media_id` and mime are stored; the binary isn't fetched)
+- the inbox UI (list and read actions)
+
+**⚠️ Before turning the receptionist on** (`ai_autoreply_mode` ≠ `off`) **or using the `draft` action:** the decrypted conversation is sent to Gemini (`GEMINI_API_KEY`) or to Base44's LLM. That provider is a new subprocessor, so add it to Annex I of the contract and to `/privacidad` first (clause 6.2). The default is `off`.
+
+**Unverified against a live deploy:**
+- **Entry point:** `export default` (from the docs) vs `Deno.serve` (what the live app uses).
+- **Secrets:** `secrets.get` (docs) vs `Deno.env.get` (live app).
+- **Public flag:** `export const config = { public: true }`, copied from the live webhook.

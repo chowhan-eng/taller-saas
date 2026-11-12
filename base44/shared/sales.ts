@@ -1,5 +1,5 @@
 // Port of supabase/migrations/002_sales_engine.sql: private.next_call_slot + public.schedule_voice_callback.
-import type { Entities } from './db.ts';
+import { find, type Entities } from './db.ts';
 
 type Wall = { y: number; m: number; d: number; h: number; mi: number; s: number; dow: number };
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -51,12 +51,12 @@ export function nextCallSlot(ts: Date): Date | null {
  * Idempotent: returns null if a scheduled/dialing call already exists.
  */
 export async function scheduleVoiceCallback(db: Entities, leadId: string, delayMinutes = 5): Promise<string | null> {
-  const [lead] = await db.Lead.filter({ id: leadId }, undefined, 1);
+  const [lead] = await find(db.Lead, { id: leadId }, { limit: 1 });
   if (!lead) throw new Error('lead not found');
   if (lead.consent_commercial_call !== true || lead.do_not_contact === true) {
     throw new Error(`no call consent for lead ${leadId}`);
   }
-  const calls = await db.VoiceCall.filter({ lead_id: leadId }, '-created_date', 20);
+  const calls = await find(db.VoiceCall, { lead_id: leadId }, { sort: '-created_date', limit: 20 });
   if (calls.some((c) => c.status === 'scheduled' || c.status === 'dialing')) return null;
   const slot = nextCallSlot(new Date(Date.now() + Math.max(delayMinutes, 1) * 60e3));
   const call = await db.VoiceCall.create({

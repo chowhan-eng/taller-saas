@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk';
 import { json, withJsonErrors } from '../../shared/http.ts';
 import { entitlementsFor } from '../../shared/modules.ts';
 import { membership } from '../../shared/tenancy.ts';
-import type { Entities } from '../../shared/db.ts';
+import { find, type Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('entitlements', async (req) => {
   const base44 = createClientFromRequest(req);
@@ -15,7 +15,7 @@ export default withJsonErrors('entitlements', async (req) => {
   const db = base44.asServiceRole.entities as unknown as Entities;
   const member = await membership(db, tenantId, user.id);
   if (!member) return json({ error: 'No tienes acceso a este taller.' }, 403);
-  const [tenant] = await db.Tenant.filter({ id: tenantId }, undefined, 1);
+  const [tenant] = await find(db.Tenant, { id: tenantId }, { limit: 1 });
   if (!tenant) return json({ error: 'Taller no encontrado' }, 404);
   return json({ plan: tenant.plan, status: tenant.status, role: member.role, modules: entitlementsFor(tenant.plan, tenant.status) });
 });

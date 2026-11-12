@@ -5,7 +5,7 @@ import { secrets } from 'base44:runtime';
 import { json, parseTs, withJsonErrors } from '../../shared/http.ts';
 import { cleanIp, toSpanishMobile } from '../../shared/phone.ts';
 import { scheduleVoiceCallback } from '../../shared/sales.ts';
-import type { Entities } from '../../shared/db.ts';
+import { find, type Entities } from '../../shared/db.ts';
 
 const CONSENT_VERSION = 'demo-v1-2026-11';
 const MAX_PER_PHONE_24H = 1;
@@ -83,10 +83,10 @@ export default withJsonErrors('demoWhatsapp', async (req) => {
   const since24h = now - 24 * 3600e3;
   const since1h = now - 3600e3;
   const [byPhone, byIp, recent, leads] = await Promise.all([
-    db.DemoRequest.filter({ phone_e164: to }, '-created_date', MAX_PER_PHONE_24H + 1),
-    ip ? db.DemoRequest.filter({ ip }, '-created_date', MAX_PER_IP_1H + 1) : Promise.resolve([]),
+    find(db.DemoRequest, { phone_e164: to }, { sort: '-created_date', limit: MAX_PER_PHONE_24H + 1 }),
+    ip ? find(db.DemoRequest, { ip }, { sort: '-created_date', limit: MAX_PER_IP_1H + 1 }) : Promise.resolve([]),
     db.DemoRequest.list('-created_date', MAX_GLOBAL_24H + 1),
-    db.Lead.filter({ phone_e164: to }, 'created_date', 1),
+    find(db.Lead, { phone_e164: to }, { sort: 'created_date', limit: 1 }),
   ]);
   const existing = leads[0] ?? null;
   const within = (rows: { created_date?: string }[], since: number) => rows.filter((r) => parseTs(r.created_date) >= since).length;

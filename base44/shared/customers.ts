@@ -1,7 +1,7 @@
 // Storage layer for shop customers: the ONLY way customer PII is written or read.
 // Plaintext exists only inside backend functions; entities hold AES-256-GCM ciphertext (crypto.ts).
 import type { FieldCrypto } from './crypto.ts';
-import type { Entities, Row } from './db.ts';
+import { find, type Entities, type Row } from './db.ts';
 
 export type CustomerInput = {
   full_name: string;
@@ -52,7 +52,7 @@ export async function decodeCustomer(fc: FieldCrypto, row: Row) {
 /** Exact-match lookup by phone via the blind index (BAJA opt-out, dedupe on create). */
 export async function findCustomerByPhone(db: Entities, fc: FieldCrypto, tenantId: string, phone: string) {
   const digits = phone.replace(/\D/g, '');
-  const rows = await db.Customer.filter({ tenant_id: tenantId, phone_hash: await fc.blindIndex(tenantId, digits) }, undefined, 1);
+  const rows = await find(db.Customer, { tenant_id: tenantId, phone_hash: await fc.blindIndex(tenantId, digits) }, { limit: 1 });
   return rows[0] ?? null;
 }
 

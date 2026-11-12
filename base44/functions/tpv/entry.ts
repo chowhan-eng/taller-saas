@@ -3,7 +3,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk';
 import { json, withJsonErrors } from '../../shared/http.ts';
 import { gateModule } from '../../shared/modules.ts';
-import type { Entities } from '../../shared/db.ts';
+import { find, type Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('tpv', async (req) => {
   const base44 = createClientFromRequest(req);
@@ -15,7 +15,7 @@ export default withJsonErrors('tpv', async (req) => {
 
   switch (body.action) {
     case 'openClosings': {
-      const rows = await db.CashClosing.filter({ tenant_id: gate.tenant.id, status: 'abierta' }, '-created_date', 10);
+      const rows = await find(db.CashClosing, { tenant_id: gate.tenant.id, status: 'abierta' }, { sort: '-created_date', limit: 10 });
       return json({ closings: rows });
     }
     default:

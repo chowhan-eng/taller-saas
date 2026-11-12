@@ -5,7 +5,7 @@ import { json, withJsonErrors } from '../../shared/http.ts';
 import { PLANS, stripeClient, type PlanCode } from '../../shared/stripe.ts';
 import { membership } from '../../shared/tenancy.ts';
 import { TRIAL_DAYS } from '../../shared/waQuota.ts';
-import type { Entities } from '../../shared/db.ts';
+import { find, type Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('checkout', async (req) => {
   const base44 = createClientFromRequest(req);
@@ -23,12 +23,12 @@ export default withJsonErrors('checkout', async (req) => {
   const member = await membership(db, body.tenantId, user.id);
   if (member?.role !== 'owner') return json({ error: 'Solo el titular del taller puede contratar.' }, 403);
 
-  const [tenant] = await db.Tenant.filter({ id: body.tenantId }, undefined, 1);
+  const [tenant] = await find(db.Tenant, { id: body.tenantId }, { limit: 1 });
   if (!tenant) return json({ error: 'Taller no encontrado' }, 404);
   if (!tenant.dpa_accepted_at) return json({ error: 'Falta aceptar el contrato de Encargado del Tratamiento.' }, 400);
 
   const stripe = stripeClient(secrets.get('STRIPE_SECRET_KEY'));
-  const [sub] = await db.Subscription.filter({ tenant_id: tenant.id }, undefined, 1);
+  const [sub] = await find(db.Subscription, { tenant_id: tenant.id }, { limit: 1 });
   let customerId = (sub?.stripe_customer_id as string | undefined) ?? null;
   if (!customerId) {
     const customer = await stripe.customers.create({

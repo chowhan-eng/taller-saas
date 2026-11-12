@@ -6,7 +6,7 @@ import { json, withJsonErrors } from '../../shared/http.ts';
 import { gateModule } from '../../shared/modules.ts';
 import { fieldCrypto } from '../../shared/crypto.ts';
 import { decodeCustomer, encodeCustomer, findCustomerByPhone, type CustomerInput } from '../../shared/customers.ts';
-import type { Entities } from '../../shared/db.ts';
+import { find, type Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('reparo', async (req) => {
   const base44 = createClientFromRequest(req);
@@ -27,14 +27,14 @@ export default withJsonErrors('reparo', async (req) => {
       } catch {
         return json({ error: 'Revisa el nombre y el teléfono del cliente.' }, 400);
       }
-      if (row.phone_hash && (await db.Customer.filter({ tenant_id: tenantId, phone_hash: row.phone_hash }, undefined, 1)).length) {
+      if (row.phone_hash && (await find(db.Customer, { tenant_id: tenantId, phone_hash: row.phone_hash }, { limit: 1 })).length) {
         return json({ error: 'Ya existe un cliente con ese teléfono.' }, 409);
       }
       const created = await db.Customer.create(row);
       return json({ customer: await decodeCustomer(fc, created) });
     }
     case 'getCustomer': {
-      const [row] = await db.Customer.filter({ id: body.customerId, tenant_id: tenantId }, undefined, 1);
+      const [row] = await find(db.Customer, { id: body.customerId, tenant_id: tenantId }, { limit: 1 });
       if (!row) return json({ error: 'Cliente no encontrado' }, 404);
       return json({ customer: await decodeCustomer(fc, row) });
     }

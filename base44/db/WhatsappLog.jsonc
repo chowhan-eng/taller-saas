@@ -98,6 +98,45 @@
     },
     "cost_eur": {
       "type": "number"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Conversation id (same tenant; enforced in backend functions)"
+    },
+    "sender_type": {
+      "type": "string",
+      "enum": [
+        "customer",
+        "agent",
+        "ai_bot",
+        "system"
+      ]
+    },
+    "message_type": {
+      "type": "string",
+      "description": "text | image | audio | video | document | sticker | reaction | ..."
+    },
+    "sent_via": {
+      "type": "string",
+      "enum": [
+        "session",
+        "template"
+      ]
+    },
+    "media_id": {
+      "type": "string",
+      "description": "Meta media id (binary not downloaded yet)"
+    },
+    "media_mime": {
+      "type": "string"
+    },
+    "reaction_emoji": {
+      "type": "string"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Meta timestamp of the message"
     }
   },
   "required": [

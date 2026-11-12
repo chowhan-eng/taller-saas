@@ -2,7 +2,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk';
 import { json, withJsonErrors } from '../../shared/http.ts';
 import { GLOBAL_TENANT } from '../../shared/priceTemplates.ts';
-import type { Entities, Row } from '../../shared/db.ts';
+import { find, type Entities, type Row } from '../../shared/db.ts';
 
 const DPA_VERSIONS = new Set(['dpa-v1-2026-11']);
 const MAX_OWNED = 3;
@@ -29,9 +29,9 @@ export default withJsonErrors('createTenant', async (req) => {
   }
 
   const db = base44.asServiceRole.entities as unknown as Entities;
-  const owned = await db.TenantUser.filter({ user_id: user.id, role: 'owner' }, undefined, MAX_OWNED);
+  const owned = await find(db.TenantUser, { user_id: user.id, role: 'owner' }, { limit: MAX_OWNED });
   if (owned.length >= MAX_OWNED) return json({ error: GENERIC }, 403);
-  if ((await db.Tenant.filter({ slug }, undefined, 1)).length) return json({ error: 'Esa dirección ya existe. Prueba otra.' }, 409);
+  if ((await find(db.Tenant, { slug }, { limit: 1 })).length) return json({ error: 'Esa dirección ya existe. Prueba otra.' }, 409);
 
   const created: [string, string][] = [];
   try {
@@ -42,7 +42,7 @@ export default withJsonErrors('createTenant', async (req) => {
     });
     created.push(['Tenant', tenant.id]);
     // Slug race (no unique index in Base44): if an earlier create won, back out.
-    const sameSlug = await db.Tenant.filter({ slug }, 'created_date', 2);
+    const sameSlug = await find(db.Tenant, { slug }, { sort: 'created_date', limit: 2 });
     if (sameSlug.length > 1 && sameSlug[0].id !== tenant.id) throw Object.assign(new Error('slug race'), { slugTaken: true });
 
     const member = await db.TenantUser.create({ tenant_id: tenant.id, user_id: user.id, user_email: user.email, role: 'owner', active: true });
@@ -50,7 +50,7 @@ export default withJsonErrors('createTenant', async (req) => {
     const sub = await db.Subscription.create({ tenant_id: tenant.id, plan: 'starter', status: 'incomplete' });
     created.push(['Subscription', sub.id]);
 
-    const templates = await db.PriceItem.filter({ tenant_id: GLOBAL_TENANT, active: true }, undefined, 500);
+    const templates = await find(db.PriceItem, { tenant_id: GLOBAL_TENANT, active: true }, { limit: 500 });
     const rows = templates.map(({ category, brand, model, service, price_eur, price_is_from, duration_min }: Row) =>
       ({ tenant_id: tenant.id, category, brand, model, service, price_eur, price_is_from, duration_min, active: true }));
     if (rows.length) {

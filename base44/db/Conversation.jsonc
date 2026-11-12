@@ -1,0 +1,107 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "Conversation",
+  "type": "object",
+  "description": "One WhatsApp thread per shop customer. Ported from WhatsApp Inbox Pro Conversations. PII is ciphertext.",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer id (same tenant; enforced in backend functions)"
+    },
+    "phone_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the customer phone. Never plaintext."
+    },
+    "phone_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Blind index: HMAC-SHA256(per-tenant key, phone E.164). Lets functions find a customer by phone (BAJA, dedupe) without storing it in clear."
+    },
+    "customer_name_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the customer display name. Never plaintext."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved",
+        "spam"
+      ],
+      "default": "open"
+    },
+    "unread": {
+      "type": "boolean",
+      "default": false
+    },
+    "unread_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "last_message_preview_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the last message preview (100 chars). Never plaintext."
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_customer_message_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_agent_message_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "service_window_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "automation_paused": {
+      "type": "boolean",
+      "default": false,
+      "description": "An agent took over: no bot may speak"
+    },
+    "autoreply_disabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "ai_draft_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the latest AI receptionist draft. Never plaintext."
+    },
+    "ai_confidence": {
+      "type": "number"
+    },
+    "ai_requires_human": {
+      "type": "boolean",
+      "default": false
+    },
+    "ai_category": {
+      "type": "string"
+    },
+    "ai_processed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "phone_hash"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}
