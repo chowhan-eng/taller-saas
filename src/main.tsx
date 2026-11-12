@@ -6,6 +6,7 @@ import Home from '@/pages/Home';
 import Onboarding from '@/pages/Onboarding';
 import Gracias from '@/pages/Gracias';
 import Privacidad from '@/pages/Privacidad';
+import { ForgotPassword, Login, Register, ResetPassword } from '@/pages/Auth';
 
 captureLoginToken();
 
@@ -14,6 +15,10 @@ const Page =
   path === '/onboarding/gracias' ? Gracias :
   path === '/onboarding' ? Onboarding :
   path === '/privacidad' ? Privacidad :
+  path === '/login' ? Login :
+  path === '/register' ? Register :
+  path === '/forgot-password' ? ForgotPassword :
+  path === '/reset-password' ? ResetPassword :
   path === '/' ? Home : NotFound;
 
 function NotFound() {

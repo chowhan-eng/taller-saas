@@ -30,6 +30,13 @@ export function captureLoginToken() {
   window.history.replaceState(null, '', url.pathname + url.search + url.hash);
 }
 
+/** Keep a token returned by email/password sign-in or code verification (same place as the redirect token). */
+export function storeToken(token: string) {
+  memToken = token;
+  try { localStorage.setItem(TOKEN_KEY, token); } catch { /* private mode: this page only */ }
+  try { base44().auth.setToken(token, true); } catch { /* callFn still sends the header */ }
+}
+
 export const isSignedIn = () => !!readToken();
 
 export function redirectToLogin() {

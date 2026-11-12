@@ -6,3 +6,6 @@ dist/
 # Old Next.js / Supabase CLI leftovers (untracked; safe to delete by hand)
 web/
 supabase/
+
+# Local backup of the production field-encryption key: NEVER commit
+ENCRYPTION_KEY_BACKUP.txt
