@@ -15,7 +15,7 @@ const FAQ: [string, string][] = [
   ['¿Sirve con mi impresora térmica?',
    'Sí, si es de 58 u 80 mm (Epson, Xprinter, Star, la típica USB…). En el alta imprimes un ticket de prueba para comprobarlo.'],
   ['¿Hace facturas? ¿Y Verifactu?',
-   'Starter no factura: genera resguardos de depósito, que no son facturas, así que puedes seguir con tu programa de facturación o tu gestoría. La facturación Verifactu llegará conectada a un proveedor certificado.'],
+   'No factura: el plan Pro genera resguardos de depósito, que no son facturas, así que puedes seguir con tu programa de facturación o tu gestoría. La facturación Verifactu llegará conectada a un proveedor certificado.'],
   ['¿Mis datos y los de mis clientes?',
    'Servidores en la Unión Europea. Firmamos contigo el contrato de Encargado del Tratamiento (RGPD art. 28). Tus datos son tuyos y los exportas cuando quieras.'],
   ['¿Permanencia?',
@@ -38,7 +38,7 @@ export default function Home() {
             <p className="small muted">Sin instalar nada · Sin tarjeta para la demo · 5 segundos</p>
             <ul className="ticks">
               <li><strong>14 Días de Prueba Gratis</strong> en el plan Starter</li>
-              <li>Resguardo e impresión de etiquetas 58/80 mm</li>
+              <li>Resguardo e impresión de etiquetas 58/80 mm (plan Pro)</li>
               <li>Avisos de WhatsApp con el número de TU taller</li>
               <li>Recordatorio automático de reseñas</li>
               <li>Garantía de devolución de 30 días</li>
@@ -83,22 +83,23 @@ export default function Home() {
           <div className="grid2">
             <div className="card">
               <h3>Starter</h3>
-              <p className="price">29 €<span className="small muted">/mes</span></p>
-              <p className="small"><strong>14 días de prueba gratis</strong>, después 29 €/mes. Pedimos la tarjeta al empezar y no se cobra nada si cancelas antes del día 15. Durante la prueba: hasta 50 mensajes de WhatsApp.</p>
+              <p className="price">39 €<span className="small muted">/mes</span></p>
+              <p className="small muted">Solo automatización de WhatsApp.</p>
+              <p className="small"><strong>14 días de prueba gratis</strong>, después 39 €/mes. Pedimos la tarjeta al empezar y no se cobra nada si cancelas antes del día 15. Durante la prueba: hasta 50 mensajes de WhatsApp.</p>
               <ul className="ticks">
-                <li>Resguardos + etiquetas 58/80 mm</li>
-                <li>Avisos automáticos de WhatsApp (400 conversaciones/mes)</li>
-                <li>Recordatorio de reseñas de Google</li>
+                <li>Avisos automáticos de WhatsApp: entrada, presupuesto y «ya está listo» (400 conversaciones/mes)</li>
+                <li>Recepcionista IA de WhatsApp 24/7: contesta a tus clientes mientras trabajas</li>
+                <li>Impulso de reseñas de Google: la petición sale sola al entregar</li>
               </ul>
               <a className="btn" href="/onboarding?plan=starter">Empezar mis 14 días gratis</a>
             </div>
             <div className="card">
               <h3>Pro</h3>
-              <p className="price">69 €<span className="small muted">/mes</span></p>
+              <p className="price">79 €<span className="small muted">/mes</span></p>
               <ul className="ticks">
                 <li>Todo lo de Starter (1.000 conversaciones/mes)</li>
+                <li>Reparo CRM: resguardos + etiquetas 58/80 mm, clientes y reparaciones</li>
                 <li>Técnicos, garantías e informes</li>
-                <li>Asistente IA de WhatsApp 24/7</li>
                 <li>TPV + Cierre de caja + facturación Verifactu <span className="muted small">(en despliegue progresivo)</span></li>
               </ul>
               <a className="btn secondary" href="/onboarding?plan=pro">Empezar con Pro</a>
@@ -140,7 +141,7 @@ export default function Home() {
       <section className="soft">
         <div className="wrap" style={{ textAlign: 'center' }}>
           <h2>Tu próximo cliente puede recibir su aviso hoy mismo</h2>
-          <a className="btn inline" href="/onboarding">Empieza tus 14 días gratis · después 29 €/mes</a>
+          <a className="btn inline" href="/onboarding">Empieza tus 14 días gratis · después 39 €/mes</a>
           <p className="small muted">14 Días de Prueba Gratis · Garantía de 30 días · Sin permanencia</p>
         </div>
       </section>

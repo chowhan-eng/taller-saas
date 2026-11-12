@@ -4,7 +4,7 @@ import { useState } from 'react';
 const AVOID_RATE = 0.6;   // share of "¿ya está?" calls a status WhatsApp prevents
 const ASK_RATE = 0.5;     // share of customers who accept a review request
 const REVIEW_RATE = 0.15; // share of those who actually leave a review
-const PLAN_EUR = 29;
+const PLAN_EUR = 39;
 
 function Slider(p: { id: string; label: string; min: number; max: number; step: number; value: number; set: (n: number) => void; suffix?: string }) {
   return (

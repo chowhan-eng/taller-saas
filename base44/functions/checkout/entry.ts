@@ -1,4 +1,4 @@
-// Port of web/app/api/checkout/route.ts — owner-only, DPA required, Stripe subscription Checkout (€29 / €69).
+// Port of web/app/api/checkout/route.ts — owner-only, DPA required, Stripe subscription Checkout (€39 / €79).
 import { createClientFromRequest } from 'npm:@base44/sdk';
 import { secrets } from 'base44:runtime';
 import { json, withJsonErrors } from '../../shared/http.ts';

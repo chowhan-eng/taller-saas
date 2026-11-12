@@ -38,7 +38,7 @@ The brief asked for `.app.jsonc`, `functions/`, `public/`, `db/`. They exist, bu
 4. The plan includes the module (otherwise **402**).
 5. The user's role is allowed.
 
-> ⚠️ **Copy conflict to decide:** the landing page and step 3 still say Starter includes "Resguardos + etiquetas". Under the gating rule above, resguardos and etiquetas belong to the Reparo module, which is Pro-only. Either move resguardos into the `whatsapp` module's entitlement, or change the Starter copy. I changed neither.
+**Pricing and copy (aligned with the gating):** Starter costs **39 €/mes** and is WhatsApp-only (auto-notifier, AI receptionist, Google review booster). Pro costs **79 €/mes** and adds Reparo CRM (resguardos, etiquetas, customers), technicians, TPV and cierre de caja. `STRIPE_PRICE_STARTER` and `STRIPE_PRICE_PRO` must point to Stripe Prices of 39 € and 79 €; checkout charges whatever Price those secrets name.
 
 ## 3. Billing: 14-day trial
 

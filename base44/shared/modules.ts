@@ -1,6 +1,6 @@
 // Plan gating for the three packaged apps. Single source of truth: change entitlements HERE only.
-//   Starter (29 €/mes) = WhatsApp Pro
-//   Pro     (69 €/mes) = WhatsApp Pro + Reparo (tickets/CRM) + TPV (caja)
+//   Starter (39 €/mes) = WhatsApp Pro (auto-avisos, recepcionista IA, reseñas)
+//   Pro     (79 €/mes) = WhatsApp Pro + Reparo (tickets/CRM) + TPV (caja)
 import type { Entities, Row } from './db.ts';
 import { membership } from './tenancy.ts';
 

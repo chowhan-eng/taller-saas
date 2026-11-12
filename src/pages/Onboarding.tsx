@@ -135,7 +135,7 @@ export default function Onboarding() {
           <input id="slug" type="text" required value={slug} onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }} />
           <p className="small muted">tallersaas.es/t/<strong>{slug || 'tu-taller'}</strong></p>
 
-          <label htmlFor="nif">NIF / CIF <span className="small muted">(sale impreso en tu resguardo)</span></label>
+          <label htmlFor="nif">NIF / CIF <span className="small muted">(aparece en tus resguardos del plan Pro)</span></label>
           <input id="nif" type="text" maxLength={12} value={nif} onChange={(e) => setNif(e.target.value)} placeholder="12345678Z o B12345678" />
 
           <label>¿Cómo facturas?</label>
@@ -170,13 +170,13 @@ export default function Onboarding() {
           <div className="choices" style={{ gridTemplateColumns: '1fr' }}>
             <label className={`choice ${plan === 'starter' ? 'on' : ''}`}>
               <input type="radio" name="plan" checked={plan === 'starter'} onChange={() => setPlan('starter')} />
-              Starter · <strong>14 días gratis</strong>, después 29 €/mes
-              <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Resguardos, etiquetas, avisos de WhatsApp y reseñas.</span>
+              Starter · <strong>14 días gratis</strong>, después 39 €/mes
+              <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Solo WhatsApp: avisos automáticos, recepcionista IA y reseñas de Google.</span>
             </label>
             <label className={`choice ${plan === 'pro' ? 'on' : ''}`}>
               <input type="radio" name="plan" checked={plan === 'pro'} onChange={() => setPlan('pro')} />
-              Pro · <strong>69 €/mes</strong>
-              <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Todo Starter + técnicos, asistente IA, TPV y cierre de caja.</span>
+              Pro · <strong>79 €/mes</strong>
+              <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Todo Starter + Reparo CRM (resguardos, etiquetas, clientes), técnicos, TPV y cierre de caja.</span>
             </label>
           </div>
           <ul className="ticks small">
