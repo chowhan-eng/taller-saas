@@ -5,6 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase-browser';
 type Step = 1 | 2 | 3;
 type Plan = 'starter' | 'pro';
 const DPA_VERSION = 'dpa-v1-2026-11';
+const NET_ERR = 'No hemos podido conectar con el servidor. Revisa tu conexión e inténtalo de nuevo en unos minutos.';
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -34,10 +35,23 @@ export default function Onboarding() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>('starter');
 
+  // Every async entry point runs through guard(): a thrown error (server unreachable, misconfigured
+  // client) must surface as a message, never leave the page stuck on "Cargando…" / "Enviando…".
+  function guard<A extends unknown[]>(fn: (...args: A) => Promise<unknown>) {
+    return (...args: A) => {
+      fn(...args).catch((e) => {
+        console.error(e);
+        setErr(NET_ERR);
+        setBusy(false);
+        setLoading(false);
+      });
+    };
+  }
+
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get('plan') === 'pro') setPlan('pro');
-    (async () => {
+    guard(async () => {
       const { data } = await sb().auth.getSession();
       const uid = data.session?.user.id;
       if (uid) await routeLoggedIn(uid);
@@ -130,7 +144,7 @@ export default function Onboarding() {
         <section className="card" style={{ padding: 24 }}>
           <h2>Crea tu cuenta</h2>
           {!codeSent ? (
-            <form onSubmit={sendCode}>
+            <form onSubmit={guard(sendCode)}>
               <label htmlFor="email">Tu email</label>
               <input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
               <p className="small muted">Te enviamos un código de 6 dígitos. Sin contraseñas.</p>
@@ -138,7 +152,7 @@ export default function Onboarding() {
               <button className="btn" disabled={busy || !email.includes('@')}>{busy ? 'Enviando…' : 'Enviarme el código'}</button>
             </form>
           ) : (
-            <form onSubmit={verifyCode}>
+            <form onSubmit={guard(verifyCode)}>
               <label htmlFor="code">Código que te hemos enviado a {email}</label>
               <input id="code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={10} required
                      value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
@@ -151,7 +165,7 @@ export default function Onboarding() {
       )}
 
       {step === 2 && (
-        <form className="card" style={{ padding: 24 }} onSubmit={createShop}>
+        <form className="card" style={{ padding: 24 }} onSubmit={guard(createShop)}>
           <h2>Tu taller</h2>
           <label htmlFor="name">Nombre comercial</label>
           <input id="name" type="text" required maxLength={120} value={tradeName}
@@ -211,7 +225,7 @@ export default function Onboarding() {
             <li>Pago seguro con Stripe (tarjeta o SEPA)</li>
           </ul>
           {err && <div className="alert err" role="alert">{err}</div>}
-          <button className="btn" onClick={checkout} disabled={busy || !tenantId}>{busy ? 'Abriendo pago…' : 'Ir al pago seguro'}</button>
+          <button className="btn" onClick={guard(checkout)} disabled={busy || !tenantId}>{busy ? 'Abriendo pago…' : 'Ir al pago seguro'}</button>
         </section>
       )}
     </main>
