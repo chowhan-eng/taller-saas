@@ -225,7 +225,8 @@
       "type": "string",
       "enum": [
         "starter",
-        "pro"
+        "pro",
+        "founder"
       ],
       "default": "starter"
     },
@@ -254,6 +255,11 @@
     },
     "dpa_version": {
       "type": "string"
+    },
+    "founder_commitment_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Founding Beta tester commitment accepted (bug reports + testimonial)"
     }
   },
   "required": [

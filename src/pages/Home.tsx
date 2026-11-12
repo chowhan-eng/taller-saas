@@ -1,5 +1,6 @@
 import DemoSimulator from '@/components/DemoSimulator';
 import RoiCalculator from '@/components/RoiCalculator';
+import FounderOffer from '@/components/FounderOffer';
 import { legalLine } from '@/lib/legal';
 
 
@@ -76,6 +77,8 @@ export default function Home() {
           <RoiCalculator />
         </div>
       </section>
+
+      <FounderOffer />
 
       <section id="planes">
         <div className="wrap">

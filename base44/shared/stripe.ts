@@ -12,6 +12,8 @@ export const stripeCrypto = Stripe.createSubtleCryptoProvider();
 export const PLANS = {
   starter: { label: 'Starter', priceSecret: 'STRIPE_PRICE_STARTER', eur: 39 },
   pro: { label: 'Pro', priceSecret: 'STRIPE_PRICE_PRO', eur: 79 },
+  // Founding Beta: 59 €/year the first year, then the locked-in founding rate 29 €/month (subscription schedule).
+  founder: { label: 'Fundador', priceSecret: 'STRIPE_PRICE_FOUNDER_YEAR', eur: 59 },
 } as const;
 export type PlanCode = keyof typeof PLANS;
 

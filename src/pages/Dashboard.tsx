@@ -27,6 +27,7 @@ export function Upgrade({ what }: { what: string }) {
       </ul>
       <p className="price">79 €<span className="small muted">/mes</span></p>
       <a className="btn" href="/onboarding/?plan=pro">Pasarme a Pro</a>
+      <p className="small"><a href="/onboarding/?plan=founder">¿Quieres ser uno de los 10 talleres fundadores? 59 € el primer año →</a></p>
       <p className="small muted">IVA no incluido. Sin permanencia.</p>
     </section>
   );

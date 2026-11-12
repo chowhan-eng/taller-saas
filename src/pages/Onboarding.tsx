@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { callFn, isSignedIn, redirectToLogin } from '@/lib/base44';
+import { FOUNDER_COMMITMENT, FounderTerms, useFounderSeats } from '@/components/FounderOffer';
 
 type Step = 1 | 2 | 3;
-type Plan = 'starter' | 'pro';
+type Plan = 'starter' | 'pro' | 'founder';
 const DPA_VERSION = 'dpa-v1-2026-11';
 const NET_ERR = 'No hemos podido conectar con el servidor. Revisa tu conexión e inténtalo de nuevo en unos minutos.';
 
@@ -27,6 +28,9 @@ export default function Onboarding() {
   // step 3
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>('starter');
+  const [commit, setCommit] = useState(false);
+  const seats = useFounderSeats();
+  const founderFull = seats?.left === 0;
 
   // Every async entry point runs through guard(): a thrown error (server unreachable, misconfigured
   // client) must surface as a message, never leave the page stuck on "Cargando…" / "Enviando…".
@@ -44,6 +48,7 @@ export default function Onboarding() {
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get('plan') === 'pro') setPlan('pro');
+    if (q.get('plan') === 'founder') setPlan('founder');
     guard(async () => {
       if (isSignedIn()) await routeLoggedIn();
       setLoading(false);
@@ -98,7 +103,7 @@ export default function Onboarding() {
 
   async function checkout() {
     setErr(null); setBusy(true);
-    const r = await callFn<{ url: string }>('checkout', { tenantId, plan });
+    const r = await callFn<{ url: string }>('checkout', { tenantId, plan, founderCommitment: plan === 'founder' ? commit : undefined });
     if (r.ok && r.data.url) {
       window.location.href = r.data.url;
     } else {
@@ -169,6 +174,14 @@ export default function Onboarding() {
           <h2>Elige tu plan</h2>
           <p className="small"><a href="/dashboard/">¿Solo quieres entrar a tu panel? Ir al panel →</a></p>
           <div className="choices" style={{ gridTemplateColumns: '1fr' }}>
+            <label className={`choice founder ${plan === 'founder' ? 'on' : ''}`} style={founderFull ? { opacity: 0.55 } : undefined}>
+              <input type="radio" name="plan" checked={plan === 'founder'} disabled={founderFull} onChange={() => setPlan('founder')} />
+              Programa Beta Fundadores · <strong>59 € el primer año</strong>
+              <span className="small" style={{ display: 'block', fontWeight: 600 }}>
+                Limitado a los 10 primeros talleres{seats ? ` · ${founderFull ? 'plazas agotadas' : `quedan ${seats.left} de ${seats.cap}`}` : ''}
+              </span>
+              <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Pro completo. Desde el año 2, 29 €/mes de por vida (en lugar de 79 €/mes). Cancelas cuando quieras.</span>
+            </label>
             <label className={`choice ${plan === 'starter' ? 'on' : ''}`}>
               <input type="radio" name="plan" checked={plan === 'starter'} onChange={() => setPlan('starter')} />
               Starter · <strong>14 días gratis</strong>, después 39 €/mes
@@ -180,6 +193,12 @@ export default function Onboarding() {
               <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Todo Starter + Reparo CRM (resguardos, etiquetas, clientes), técnicos, TPV y cierre de caja.</span>
             </label>
           </div>
+          {plan === 'founder' && (
+            <>
+              <FounderTerms />
+              <label className="check"><input type="checkbox" checked={commit} onChange={(e) => setCommit(e.target.checked)} /><span>{FOUNDER_COMMITMENT}</span></label>
+            </>
+          )}
           <ul className="ticks small">
             {plan === 'starter' && <li><strong>14 Días de Prueba Gratis</strong>: pedimos la tarjeta ahora y no se cobra nada si cancelas antes del día 15. Durante la prueba: hasta 50 mensajes de WhatsApp.</li>}
             <li>Sin permanencia</li>
@@ -187,7 +206,7 @@ export default function Onboarding() {
             <li>Pago seguro con Stripe (tarjeta o SEPA)</li>
           </ul>
           {err && <div className="alert err" role="alert">{err}</div>}
-          <button className="btn" onClick={guard(checkout)} disabled={busy || !tenantId}>{busy ? 'Abriendo pago…' : plan === 'starter' ? 'Empezar mis 14 días gratis' : 'Ir al pago seguro'}</button>
+          <button className="btn" onClick={guard(checkout)} disabled={busy || !tenantId || (plan === 'founder' && (!commit || founderFull))}>{busy ? 'Abriendo pago…' : plan === 'starter' ? 'Empezar mis 14 días gratis' : plan === 'founder' ? 'Reservar mi plaza de fundador · 59 €' : 'Ir al pago seguro'}</button>
         </section>
       )}
     </main>

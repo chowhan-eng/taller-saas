@@ -106,6 +106,8 @@ summary { cursor: pointer; font-weight: 600; font-size: 1.05rem; }
 .steps div { flex: 1; height: 6px; border-radius: 99px; background: var(--border); }
 .steps div.on { background: var(--brand); }
 
+.founder { border: 2px solid var(--brand); padding: 22px; }
+.price-sm { font-size: 1.15rem; margin: 8px 0; }
 .range { width: 100%; accent-color: var(--brand); }
 .roi-out { font-size: 1.1rem; }
 .roi-out strong { color: var(--brand); }

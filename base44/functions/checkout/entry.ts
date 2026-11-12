@@ -5,6 +5,7 @@ import { json, withJsonErrors } from '../../shared/http.ts';
 import { PLANS, stripeClient, type PlanCode } from '../../shared/stripe.ts';
 import { membership } from '../../shared/tenancy.ts';
 import { TRIAL_DAYS } from '../../shared/waQuota.ts';
+import { founderSeats, RESERVATION_MS } from '../../shared/founder.ts';
 import { find, type Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('checkout', async (req) => {
@@ -12,11 +13,14 @@ export default withJsonErrors('checkout', async (req) => {
   const user = await base44.auth.me().catch(() => null);
   if (!user) return json({ error: 'Tu sesión ha caducado. Vuelve a entrar.' }, 401);
 
-  const body = (await req.json().catch(() => ({}))) as { tenantId?: string; plan?: string };
+  const body = (await req.json().catch(() => ({}))) as { tenantId?: string; plan?: string; founderCommitment?: boolean };
   const plan = body.plan as PlanCode;
   if (!body.tenantId || !(plan in PLANS)) return json({ error: 'Petición no válida' }, 400);
   const price = secrets.get(PLANS[plan].priceSecret);
   if (!price) return json({ error: 'Pago no configurado todavía.' }, 500);
+  // The founder copy promises 29 €/month from year 2: refuse to sell it until that price exists.
+  if (plan === 'founder' && !secrets.get('STRIPE_PRICE_FOUNDER_MONTHLY')) return json({ error: 'Pago no configurado todavía.' }, 500);
+  if (plan === 'founder' && body.founderCommitment !== true) return json({ error: 'Marca el compromiso de probador para acceder al plan Fundador.' }, 400);
 
   const db = base44.asServiceRole.entities as unknown as Entities;
   // Only the OWNER of this tenant may start checkout.
@@ -29,6 +33,12 @@ export default withJsonErrors('checkout', async (req) => {
 
   const stripe = stripeClient(secrets.get('STRIPE_SECRET_KEY'));
   const [sub] = await find(db.Subscription, { tenant_id: tenant.id }, { limit: 1 });
+  if (plan === 'founder') {
+    if ((await founderSeats(db, tenant.id)).left <= 0) return json({ error: 'Las 10 plazas de Fundador ya están cogidas.' }, 409);
+    await db.Tenant.update(tenant.id, { founder_commitment_at: new Date().toISOString() });
+    // Reserve the seat while the shop pays (counted for RESERVATION_MS).
+    if (sub) await db.Subscription.update(sub.id, { plan: 'founder', status: sub.status === 'active' ? sub.status : 'incomplete' });
+  }
   let customerId = (sub?.stripe_customer_id as string | undefined) ?? null;
   if (!customerId) {
     const customer = await stripe.customers.create({
@@ -45,6 +55,7 @@ export default withJsonErrors('checkout', async (req) => {
   // 14-day free trial: Starter only, once per tenant, card required up front. Stripe charges on day 15
   // unless cancelled; if the card is somehow missing when the trial ends, the subscription is cancelled.
   const withTrial = plan === 'starter' && sub?.trial_used !== true;
+  const founderExpiry = plan === 'founder' ? { expires_at: Math.floor((Date.now() + RESERVATION_MS - 5 * 60e3) / 1000) } : {};
 
   const site = secrets.get('SITE_URL') ?? req.headers.get('origin') ?? new URL(req.url).origin;
   const session = await stripe.checkout.sessions.create({
@@ -54,6 +65,7 @@ export default withJsonErrors('checkout', async (req) => {
     client_reference_id: tenant.id,
     metadata: { tenant_id: tenant.id, plan },
     payment_method_collection: 'always',
+    ...founderExpiry,
     subscription_data: {
       metadata: { tenant_id: tenant.id, plan },
       ...(withTrial

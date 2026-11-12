@@ -11,7 +11,7 @@ const STATUS: Record<string, string> = {
 };
 const DEVICE_LABEL: Record<string, string> = { movil: 'Móvil', tablet: 'Tablet', portatil: 'Portátil', sobremesa: 'Sobremesa', consola: 'Consola', mando: 'Mando', smartwatch: 'Reloj', otro: 'Otro' };
 const PART_LABEL: Record<string, string> = { screen: 'Pantalla', battery: 'Batería', charging_port: 'Conector de carga', back_cover: 'Tapa trasera', camera: 'Cámara', speaker: 'Altavoz', keyboard: 'Teclado', keyboard_riveted: 'Teclado remachado', hinges: 'Bisagras', fan: 'Ventilador', hdmi: 'HDMI', joystick: 'Joystick', other: 'Otra' };
-const PAGE = 30;
+const PAGE = 20;
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 const e164 = (raw: string) => { const d = raw.replace(/\D/g, ''); return d ? (d.length === 9 ? `34${d}` : d) : null; };
 

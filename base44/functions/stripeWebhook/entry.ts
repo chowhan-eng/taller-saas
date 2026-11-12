@@ -29,6 +29,7 @@ export default withJsonErrors('stripeWebhook', async (req) => {
         if (s.mode !== 'subscription' || !s.subscription) break;
         const sub = await stripe.subscriptions.retrieve(typeof s.subscription === 'string' ? s.subscription : s.subscription.id);
         await syncSubscription(db, sub, s.metadata?.tenant_id ?? s.client_reference_id ?? undefined);
+        if (sub.metadata?.plan === 'founder') await scheduleFounderRenewal(stripe, sub);
         break;
       }
       case 'customer.subscription.created':
@@ -46,10 +47,28 @@ export default withJsonErrors('stripeWebhook', async (req) => {
   return json({ received: true });
 });
 
+/**
+ * Founder lock-in: 1 year at 59 € (the price bought), then the founding rate 29 €/month for as long as they
+ * stay. A Stripe subscription schedule makes the change automatic; the shop can cancel any time.
+ */
+async function scheduleFounderRenewal(stripe: Stripe, sub: Stripe.Subscription) {
+  const monthly = secrets.get('STRIPE_PRICE_FOUNDER_MONTHLY');
+  if (!monthly || sub.schedule) return;
+  const schedule = await stripe.subscriptionSchedules.create({ from_subscription: sub.id });
+  const first = schedule.phases[0];
+  await stripe.subscriptionSchedules.update(schedule.id, {
+    end_behavior: 'release',
+    phases: [
+      { items: first.items.map((i) => ({ price: typeof i.price === 'string' ? i.price : i.price.id, quantity: i.quantity ?? 1 })), start_date: first.start_date, end_date: first.end_date },
+      { items: [{ price: monthly, quantity: 1 }], iterations: 1, metadata: { tenant_id: String(sub.metadata?.tenant_id ?? ''), plan: 'founder' } },
+    ],
+  });
+}
+
 async function syncSubscription(db: Entities, sub: Stripe.Subscription, tenantHint?: string) {
   const tenantId = sub.metadata?.tenant_id || tenantHint;
   if (!tenantId) return;
-  const plan = sub.metadata?.plan === 'pro' ? 'pro' : 'starter';
+  const plan = sub.metadata?.plan === 'pro' || sub.metadata?.plan === 'founder' ? sub.metadata.plan : 'starter';
   // current_period_end lives on the subscription (older API versions) or on its items (newer ones).
   const periodEnd =
     (sub as unknown as { current_period_end?: number }).current_period_end ??

@@ -8,9 +8,9 @@ export type ModuleCode = 'whatsapp' | 'reparo' | 'tpv';
 export type Role = 'owner' | 'admin' | 'counter' | 'technician';
 
 export const MODULE_PLANS: Record<ModuleCode, readonly string[]> = {
-  whatsapp: ['starter', 'pro'],
-  reparo: ['pro'],
-  tpv: ['pro'],
+  whatsapp: ['starter', 'pro', 'founder'],
+  reparo: ['pro', 'founder'],
+  tpv: ['pro', 'founder'],
 };
 
 /** Same statuses as private.tenant_active() in the old SQL: the tenant can use its plan's modules. */
@@ -24,15 +24,17 @@ export function entitlementsFor(plan: unknown, status: unknown): ModuleCode[] {
 /** Subscription states that count as a PAID, ACTIVE Pro plan (past_due = Stripe's retry grace period). */
 export const PRO_ACTIVE_SUB_STATUSES = ['active', 'past_due'] as const;
 const PRO_ACTIVE_TENANT_STATUSES = ['active', 'past_due'];
+/** Plans with full Pro access. The Founding Beta plan (10 shops, 59 €/year) is Pro in every permission check. */
+export const PRO_PLANS = ['pro', 'founder'];
 
 /**
  * Reparo and TPV require an ACTIVE PAID Pro subscription — checked on BOTH the Tenant row and its Stripe
  * Subscription row (both written only by stripeWebhook). Starter, onboarding, unpaid, cancelled or missing → false.
  */
 export async function isProActive(db: Entities, tenant: Row): Promise<boolean> {
-  if (tenant.plan !== 'pro' || !PRO_ACTIVE_TENANT_STATUSES.includes(String(tenant.status))) return false;
+  if (!PRO_PLANS.includes(String(tenant.plan)) || !PRO_ACTIVE_TENANT_STATUSES.includes(String(tenant.status))) return false;
   const [sub] = await find(db.Subscription, { tenant_id: tenant.id }, { limit: 1 });
-  return !!sub && sub.plan === 'pro' && (PRO_ACTIVE_SUB_STATUSES as readonly string[]).includes(String(sub.status));
+  return !!sub && PRO_PLANS.includes(String(sub.plan)) && (PRO_ACTIVE_SUB_STATUSES as readonly string[]).includes(String(sub.status));
 }
 
 export type Gate =
