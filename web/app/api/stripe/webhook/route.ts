@@ -2,12 +2,15 @@ import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { mapSubStatus, mapTenantStatus, stripeClient } from '@/lib/stripe';
+import { withJsonErrors } from '@/lib/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** The ONLY place that activates a tenant. success_url pages never change billing state. */
-export async function POST(req: Request) {
+export const POST = withJsonErrors(handle);
+
+async function handle(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const sig = req.headers.get('stripe-signature');
   if (!secret || !sig) return new NextResponse('missing signature', { status: 400 });

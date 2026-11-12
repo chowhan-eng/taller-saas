@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, userFromRequest } from '@/lib/supabase-admin';
 import { PLANS, stripeClient, type PlanCode } from '@/lib/stripe';
+import { withJsonErrors } from '@/lib/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status });
 
-export async function POST(req: Request) {
+export const POST = withJsonErrors(handle);
+
+async function handle(req: Request) {
   const user = await userFromRequest(req);
   if (!user) return json({ error: 'Tu sesión ha caducado. Vuelve a entrar.' }, 401);
 

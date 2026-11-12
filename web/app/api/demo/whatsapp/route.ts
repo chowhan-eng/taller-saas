@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { cleanIp, toSpanishMobile } from '@/lib/phone';
+import { withJsonErrors } from '@/lib/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,9 @@ function alertFounder(text: string) {
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) }).catch(() => {});
 }
 
-export async function POST(req: Request) {
+export const POST = withJsonErrors(handle);
+
+async function handle(req: Request) {
   let payload: Record<string, unknown>;
   try {
     payload = await req.json();
