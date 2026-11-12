@@ -1,5 +1,11 @@
 import DemoSimulator from '@/components/DemoSimulator';
 import RoiCalculator from '@/components/RoiCalculator';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { legalLine } from '@/lib/legal';
+
+// Drop the real counter photo at web/public/mostrador.jpg; until then the card is simply not rendered.
+const HAS_PHOTO = existsSync(join(process.cwd(), 'public', 'mostrador.jpg'));
 
 const FAQ: [string, string][] = [
   ['¿Tengo que cambiar mi número de WhatsApp?',
@@ -117,7 +123,10 @@ export default function Home() {
               con prisa, con el cliente delante y con el soldador encendido. Ahora lo abro a otros talleres.
             </p>
           </div>
-          <div className="card"><p className="muted">[Foto real del mostrador de Informática Torrent]</p></div>
+          {HAS_PHOTO && (
+            <img src="/mostrador.jpg" alt="El mostrador de Informática Torrent en Valencia" className="card"
+                 style={{ width: '100%', height: 'auto', padding: 0, objectFit: 'cover' }} />
+          )}
         </div>
       </section>
 
@@ -140,7 +149,8 @@ export default function Home() {
 
       <footer>
         <div className="wrap">
-          © {new Date().getFullYear()} Taller SaaS · <a href="/privacidad">Privacidad</a> · Datos del titular: [Razón social, CIF, dirección]
+          © {new Date().getFullYear()} Taller SaaS · <a href="/privacidad">Privacidad</a>
+          {legalLine() && <> · {legalLine()}</>}
         </div>
       </footer>
     </main>
