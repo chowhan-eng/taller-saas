@@ -30,7 +30,9 @@ The brief asked for `.app.jsonc`, `functions/`, `public/`, `db/`. They exist, bu
 | `entitlements` | member | new: modules the shop may use |
 | `whatsappWebhook` | Meta signature | WhatsApp Inbox Pro `whatsappWebhook`: inbound, receipts, BAJA/STOP, AI receptionist (see §8) |
 | `whatsapp` | member + plan | send, AI draft, pause bot, quota, settings (WhatsApp Inbox Pro `sendMessage` + `generateDraft`) |
-| `reparo` / `tpv` | member + plan | gated module routers (scaffold) |
+| `reparo` | member + **active paid Pro** | Reparo CRM: tickets, budget, auto-quote, unlock code, IMEI lookup (§9) |
+| `tpv` | owner/admin/counter + **active paid Pro** | TPV: caja, sales by method, cash in/out, Z cierre (§9) |
+| `ticketNotifySweep` | `X-Cron-Key` | every 5 min: sends due ticket WhatsApp notices |
 | `seedPriceTemplates` | app admin | seed `INSERT` of 24 prices |
 
 **Plan gating (`shared/modules.ts`, single source of truth):** Starter = `whatsapp`; Pro = `whatsapp`, `reparo`, `tpv`. Every module call runs `gateModule()` in this order:
@@ -185,3 +187,59 @@ They're now multi-tenant and encrypted:
 - **Entry point:** `export default` (from the docs) vs `Deno.serve` (what the live app uses).
 - **Secrets:** `secrets.get` (docs) vs `Deno.env.get` (live app).
 - **Public flag:** `export const config = { public: true }`, copied from the live webhook.
+
+## 9. Reparo CRM and TPV (ported from the live Reparo and TPV Base44 apps)
+
+**Gate.** Every `reparo` and `tpv` action runs through `gateModule()` before anything else. It requires all of the following:
+- `Tenant.plan = pro` and `Tenant.status` ∈ {active, past_due}
+- `Subscription.plan = pro` and `Subscription.status` ∈ {active, past_due}
+
+Both rows are written only by `stripeWebhook`. `past_due` counts as Stripe's retry grace period, so a failed card doesn't lock a shop out of its till mid-day. Starter, onboarding, unpaid, cancelled and missing subscriptions get **402**. Tests call every action as a Starter shop. A mutation check (removing the subscription check) makes them fail.
+
+**Reparo** (`shared/tickets.ts`, `shared/pricing.ts`, `shared/ticketNotify.ts`, `shared/reparoApi.ts`):
+- **Ticket numbers** `YYYY-000123`, per shop and per year. Atomic: a conditional `updateMany` write, the same as Reparo's `allocateOrderNumber`.
+- **Encryption.** The customer lives in Customer (name and phone encrypted). These ticket fields are AES-256-GCM:
+  - IMEI/serial, plus a blind index for warranty lookups
+  - unlock PIN (placeholders like «no tiene» aren't stored, as in Reparo)
+  - fault, diagnosis, accessories, physical condition
+  - signature URL
+
+  Brand, model, status and amounts stay readable for reports.
+- **Unlock code.** Only owner/admin can reveal it (`revealUnlockCode`), and every reveal is logged as a TicketEvent.
+- **Lifecycle.** `ready_at`; `delivered_at` + `warranty_until` (Madrid date + warranty days, ≥ 90); and an append-only TicketEvent history.
+- **Budget.** `enviado` (an amount is required), `aceptado` or `rechazado`, and each moves the ticket status.
+- **Auto-quote.** `pricing.ts` is a verbatim port of Reparo's engine. Reparo's own expected figures are now vitest tests. It uses each shop's MarginRule/LaborRule and builds the quote message with the shop's own name.
+- **WhatsApp notices.** The port of `notifyWhatsApp`:
+  - each status queues a TicketNotification due in 60 s; the review request waits `review_delay_hours`
+  - the sweep re-reads the ticket, so a status that changed again inside the delay isn't sent
+  - notices need the customer's service opt-in (marketing opt-in plus a Google review link for the review request)
+  - they're sent through `sendWhatsapp()`, so the trial quota, the BAJA block, idempotency and opening hours all apply
+  - if the shop is closed, the notice is retried 15 minutes later
+
+**⚠️ Meta templates to create and approve:**
+- `taller_recibido_v1` {shop, ticket no., device}
+- `taller_presupuesto_v1` {shop, device, amount}
+- `taller_listo_v1` {shop, device, ticket no.}
+- `taller_resena_v1` (MARKETING) {shop, review link}
+
+Schedule `ticketNotifySweep` every 5 min with header `X-Cron-Key: <CRON_KEY>`.
+
+**TPV** (`shared/cash.ts`, `shared/tpvApi.ts`; port of `cashTotals.ts`, `openCashSession`, `cashMovement`, `closeCashSession`):
+- **Opening:** one open session per register. The float defaults to the last «fondo para mañana».
+- **Movements:** every payment, refund and cash in/out is an append-only CashMovement. Each is idempotent on `client_request_id` (double clicks, retries and a slow CashDro are recorded once), and a race keeps the oldest copy.
+- **Z close:** the paper formula, verbatim:
+  - esperado = fondo + ventas − tarjeta − (bizum + transferencia + señal + vale) + entradas − salidas
+  - diferencia = real − esperado
+  - fondo para mañana = real − retirado
+  - withdrawn may not exceed counted; a CashDro negative withdrawal is accepted
+  - the recharges total and balance are stored, as is the CashDro levels snapshot
+  - the Z number is per register; only the opener or owner/admin may close; a closed session is never edited
+  - anything recorded after the cierre's `cutoff_at` moves to tomorrow's session (auto-opened)
+- **CashDro:** the browser talks to the shop's local «Puente CashDro» (`src/lib/cashdro.ts`, a verbatim port; its config stays in the browser). The payment dialog's outcome rules are in `src/lib/cashdroSettle.ts`: a sale counts only if inserted ≥ price and it wasn't cancelled; for a payout, the machine counters beat a zero `totalout`; when unclear, a human confirms. The phases that lock the dialog are listed there.
+
+**Not ported (no screens or entities yet):**
+- **Reparo:** the Reparo and TPV user interfaces, supplier part search, PartQuote multi-option quotes with suppliers and ETA, print templates, custom fields, HelloClient sync, public status page, reminders.
+- **TPV:** product catalogue and stock, invoices/Verifactu, vouchers and deposits as documents, daily e-mail reports, PIN gates.
+- **CashDro bridge:** the Windows program itself is not part of this repo.
+
+**Removed:** the demo's «Acepto que me llamen» checkbox, the voice-callback scheduling and the `VoiceCall` entity (no AI voice follow-ups). `/privacidad` no longer mentions calls.

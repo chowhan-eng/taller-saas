@@ -28,7 +28,6 @@ export default function DemoSimulator() {
           phone: fd.get('phone'),
           shop: fd.get('shop'),
           consentDemo: fd.get('consentDemo') === 'on',
-          consentCall: fd.get('consentCall') === 'on',
           turnstileToken: fd.get('cf-turnstile-response') ?? '',
         }),
       });
@@ -69,10 +68,6 @@ export default function DemoSimulator() {
         <input type="checkbox" name="consentDemo" checked={consentDemo} onChange={(e) => setConsentDemo(e.target.checked)} />
         <span><strong>Quiero recibir un único WhatsApp de demostración en este número.</strong> (obligatoria)</span>
       </label>
-      <label className="check">
-        <input type="checkbox" name="consentCall" />
-        <span>Acepto que me llamen para enseñarme el programa (opcional; una persona o un asistente de voz con IA identificado como tal).</span>
-      </label>
 
       {SITE_KEY && <div className="cf-turnstile" data-sitekey={SITE_KEY} data-language="es" style={{ margin: '12px 0' }} />}
 
@@ -82,7 +77,7 @@ export default function DemoSimulator() {
         {state.kind === 'sending' ? 'Enviando…' : 'Enviarme el WhatsApp de prueba'}
       </button>
       <p className="small muted">
-        Usamos tu número solo para esta demo y, si marcas la segunda casilla, para una llamada. Puedes oponerte en cualquier
+        Usamos tu número solo para esta demo. Puedes oponerte en cualquier
         momento. <a href="/privacidad">Política de privacidad</a>
       </p>
     </form>

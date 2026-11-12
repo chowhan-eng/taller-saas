@@ -1,0 +1,44 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "MarginRule",
+  "type": "object",
+  "description": "Auto-quote: margin on the part net cost by cost band (cents). Ported from Reparo MarginRule.",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "cost_from_cents": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cost_to_cents": {
+      "type": "integer",
+      "description": "Empty = no upper limit"
+    },
+    "margin_pct": {
+      "type": "number",
+      "minimum": 0
+    },
+    "min_margin_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    }
+  },
+  "required": [
+    "tenant_id",
+    "cost_from_cents",
+    "margin_pct"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

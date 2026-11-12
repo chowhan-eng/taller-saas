@@ -1,0 +1,77 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "TicketNotification",
+  "type": "object",
+  "description": "Delayed WhatsApp notice for a ticket status (port of Reparo WhatsAppQueue): re-checked when due, so a status changed again within the delay is not sent.",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "RepairTicket id (same tenant; enforced in backend functions)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "recibido",
+        "diagnostico",
+        "presupuesto_enviado",
+        "presupuesto_aceptado",
+        "presupuesto_rechazado",
+        "esperando_pieza",
+        "en_reparacion",
+        "listo_recoger",
+        "entregado",
+        "no_reparable",
+        "cancelado"
+      ]
+    },
+    "template_name": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sending",
+        "done",
+        "skipped",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "result": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "wa_message_id": {
+      "type": "string"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "ticket_id",
+    "status",
+    "due_at"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

@@ -4,7 +4,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk';
 import { secrets } from 'base44:runtime';
 import { json, parseTs, withJsonErrors } from '../../shared/http.ts';
 import { cleanIp, toSpanishMobile } from '../../shared/phone.ts';
-import { scheduleVoiceCallback } from '../../shared/sales.ts';
 import { find, type Entities } from '../../shared/db.ts';
 
 const CONSENT_VERSION = 'demo-v1-2026-11';
@@ -74,7 +73,6 @@ export default withJsonErrors('demoWhatsapp', async (req) => {
   const to = toSpanishMobile(String(payload.phone ?? ''));
   if (!to) return json({ ok: false, error: 'Introduce un móvil español (empieza por 6 o 7).' }, 400);
   const shopName = String(payload.shop ?? '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, 40) || 'tu taller';
-  const consentCall = payload.consentCall === true;
 
   const db = createClientFromRequest(req).asServiceRole.entities as unknown as Entities;
 
@@ -100,7 +98,6 @@ export default withJsonErrors('demoWhatsapp', async (req) => {
     phone_e164: to, phone_kind: 'mobile', shop_name: shopName, source: 'web_simulator', stage: 'hot',
     consent_whatsapp_demo: true, consent_text_version: CONSENT_VERSION, consent_at: new Date(now).toISOString(), consent_ip: ip,
   };
-  if (consentCall) leadRow.consent_commercial_call = true;
   let leadId: string;
   try {
     if (existing) {
@@ -123,12 +120,7 @@ export default withJsonErrors('demoWhatsapp', async (req) => {
   if (dr) await db.DemoRequest.update(dr.id, { wa_message_id: sent.id, status: sent.ok ? 'sent' : 'failed' });
 
   // 7. Founder alert
-  alertFounder(`🔥 Demo ${sent.ok ? 'enviada' : 'FALLIDA'}: ${shopName} · +${to} · llamada: ${consentCall ? 'SÍ' : 'no'}${sent.ok ? '' : ` · ${sent.error}`}`);
-
-  // 8. Consented voice callback. scheduleVoiceCallback refuses without consent.
-  if (consentCall && sent.ok) {
-    await scheduleVoiceCallback(db, leadId, 5).catch((e) => console.error('schedule_voice_callback', e));
-  }
+  alertFounder(`🔥 Demo ${sent.ok ? 'enviada' : 'FALLIDA'}: ${shopName} · +${to} ${sent.ok ? '' : ` · ${sent.error}`}`);
 
   if (!sent.ok) return json({ ok: false, error: 'No hemos podido enviarlo ahora. Te escribimos en unos minutos.' }, 502);
   return json({ ok: true });

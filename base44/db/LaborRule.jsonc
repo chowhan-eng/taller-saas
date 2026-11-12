@@ -1,0 +1,67 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "LaborRule",
+  "type": "object",
+  "description": "Auto-quote: labour by device family and part type (net cents). Ported from Reparo LaborRule.",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "movil",
+        "tablet",
+        "portatil",
+        "sobremesa",
+        "consola"
+      ]
+    },
+    "part_type": {
+      "type": "string",
+      "description": "screen, battery, charging_port, back_cover, camera, speaker, keyboard, keyboard_riveted, hinges, fan, hdmi, joystick, other"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "N1",
+        "N2",
+        "N3",
+        "N4",
+        "N5"
+      ]
+    },
+    "labor_cents": {
+      "type": "integer",
+      "description": "Empty = level default"
+    },
+    "consumables_cents": {
+      "type": "integer",
+      "default": 0
+    },
+    "label": {
+      "type": "string",
+      "description": "Customer-facing: «Cambio de pantalla»"
+    },
+    "minutes_est": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "category",
+    "part_type",
+    "level"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

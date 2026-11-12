@@ -22,6 +22,8 @@ export type SendInput = {
   idempotencyKey?: string;
   template?: { name: string; lang?: string; params?: string[] };
   quotedWaMessageId?: string;
+  ticketId?: string;
+  category?: 'utility' | 'marketing' | 'service';
 };
 export type SendDeps = {
   db: Entities;
@@ -125,7 +127,8 @@ export async function sendWhatsapp(deps: SendDeps, tenant: Row, input: SendInput
   await db.WhatsappLog.create({
     tenant_id: tenantId, conversation_id: conversationId, customer_id: customer?.id ?? null,
     direction: 'outbound', sender_type: input.senderType ?? 'agent', message_type: 'text', sent_via: sentVia,
-    category: sentVia === 'template' ? 'utility' : 'service', template_name: sentVia === 'template' ? template?.name ?? null : null,
+    ticket_id: input.ticketId ?? null,
+    category: input.category ?? (sentVia === 'template' ? 'utility' : 'service'), template_name: sentVia === 'template' ? template?.name ?? null : null,
     to_phone_enc: await fc.encrypt(tenantId, phone), phone_hash: phoneHash,
     body_preview_enc: await fc.encryptOpt(tenantId, storedText.slice(0, 4096)),
     wa_message_id: result.id, status: result.ok ? 'sent' : 'failed',

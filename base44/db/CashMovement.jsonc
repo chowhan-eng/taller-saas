@@ -2,7 +2,7 @@
 {
   "name": "CashMovement",
   "type": "object",
-  "description": "Append-only cash movement. SQL: public.cash_movements",
+  "description": "Append-only money movement of a cash session (sales by payment method, refunds, cash in/out). Ported from TPV CashMovement + Sale payments.",
   "properties": {
     "tenant_id": {
       "type": "string",
@@ -12,23 +12,31 @@
       "type": "string",
       "description": "CashClosing id (same tenant; enforced in backend functions)"
     },
-    "movement_type": {
+    "kind": {
       "type": "string",
       "enum": [
-        "apertura",
-        "venta_efectivo",
-        "venta_tarjeta",
-        "venta_bizum",
-        "senal_deposito",
-        "devolucion",
-        "entrada_manual",
-        "salida_manual",
-        "retirada_banco"
+        "sale",
+        "refund",
+        "cash_in",
+        "cash_out"
       ]
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "card",
+        "bizum",
+        "transfer",
+        "deposit",
+        "voucher"
+      ],
+      "default": "cash"
     },
     "amount_eur": {
       "type": "number",
-      "description": "positive = in, negative = out"
+      "minimum": 0,
+      "description": "Always positive; kind decides the sign"
     },
     "ticket_id": {
       "type": "string",
@@ -38,7 +46,22 @@
       "type": "string",
       "description": "FiscalDocument id (same tenant; enforced in backend functions)"
     },
-    "concept": {
+    "sale_ref": {
+      "type": "string",
+      "description": "Groups the payments of one sale"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "person": {
+      "type": "string",
+      "description": "Who takes the cash on a withdrawal"
+    },
+    "client_request_id": {
+      "type": "string",
+      "description": "Idempotency: the same request is recorded once (double click, slow CashDro, retry)"
+    },
+    "cashdro_operation_id": {
       "type": "string"
     },
     "actor_id": {
@@ -48,7 +71,8 @@
   "required": [
     "tenant_id",
     "closing_id",
-    "movement_type",
+    "kind",
+    "method",
     "amount_eur"
   ],
   "rls": {

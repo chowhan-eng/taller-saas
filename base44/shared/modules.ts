@@ -21,6 +21,20 @@ export function entitlementsFor(plan: unknown, status: unknown): ModuleCode[] {
   return (Object.keys(MODULE_PLANS) as ModuleCode[]).filter((m) => MODULE_PLANS[m].includes(String(plan)));
 }
 
+/** Subscription states that count as a PAID, ACTIVE Pro plan (past_due = Stripe's retry grace period). */
+export const PRO_ACTIVE_SUB_STATUSES = ['active', 'past_due'] as const;
+const PRO_ACTIVE_TENANT_STATUSES = ['active', 'past_due'];
+
+/**
+ * Reparo and TPV require an ACTIVE PAID Pro subscription — checked on BOTH the Tenant row and its Stripe
+ * Subscription row (both written only by stripeWebhook). Starter, onboarding, unpaid, cancelled or missing → false.
+ */
+export async function isProActive(db: Entities, tenant: Row): Promise<boolean> {
+  if (tenant.plan !== 'pro' || !PRO_ACTIVE_TENANT_STATUSES.includes(String(tenant.status))) return false;
+  const [sub] = await find(db.Subscription, { tenant_id: tenant.id }, { limit: 1 });
+  return !!sub && sub.plan === 'pro' && (PRO_ACTIVE_SUB_STATUSES as readonly string[]).includes(String(sub.status));
+}
+
 export type Gate =
   | { ok: true; tenant: Row; role: Role }
   | { ok: false; status: 401 | 402 | 403 | 404; error: string };
@@ -40,6 +54,9 @@ export async function gateModule(
   if (!tenant) return { ok: false, status: 404, error: 'Taller no encontrado' };
   if (!entitlementsFor(tenant.plan, tenant.status).includes(module)) {
     return { ok: false, status: 402, error: 'Tu plan no incluye este módulo. Pásate a Pro para activarlo.' };
+  }
+  if (module !== 'whatsapp' && !(await isProActive(db, tenant))) {
+    return { ok: false, status: 402, error: 'Reparo y TPV necesitan una suscripción Pro activa.' };
   }
   const role = member.role as Role;
   if (roles && !roles.includes(role)) return { ok: false, status: 403, error: 'Tu usuario no tiene permiso para esta acción.' };

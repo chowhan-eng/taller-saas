@@ -2,7 +2,7 @@
 {
   "name": "RepairTicket",
   "type": "object",
-  "description": "Repair ticket / resguardo de depósito (NOT an invoice). SQL: public.repair_tickets",
+  "description": "Repair ticket / resguardo de depósito (NOT an invoice). Ported from Reparo RepairOrder. Customer-identifying and free-text fields are AES-256-GCM ciphertext (shared/tickets.ts).",
   "properties": {
     "tenant_id": {
       "type": "string",
@@ -10,7 +10,7 @@
     },
     "ticket_number": {
       "type": "string",
-      "description": "YYYY-000123 per tenant per year"
+      "description": "YYYY-000123 per tenant per year (atomic counter, shared/tickets.ts)"
     },
     "customer_id": {
       "type": "string",
@@ -35,26 +35,59 @@
     "model": {
       "type": "string"
     },
-    "serial_imei": {
-      "type": "string"
+    "serial_imei_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the serial number / IMEI. Never plaintext."
+    },
+    "serial_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Blind index: HMAC-SHA256(per-tenant key, phone E.164). Lets functions find a customer by phone (BAJA, dedupe) without storing it in clear."
     },
     "unlock_code_enc": {
       "type": "string",
       "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
       "description": "AES-256-GCM ciphertext of the device PIN / unlock pattern. Never plaintext."
     },
-    "accessories": {
+    "has_unlock_code": {
+      "type": "boolean",
+      "default": false
+    },
+    "accessories_enc": {
       "type": "string",
-      "description": "'cargador, funda, tarjeta SIM'"
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the accessories ('cargador, funda, tarjeta SIM'). Never plaintext."
     },
-    "physical_condition": {
-      "type": "string"
+    "physical_condition_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the physical condition. Never plaintext."
     },
-    "reported_fault": {
-      "type": "string"
+    "reported_fault_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the fault as told by the customer. Never plaintext."
     },
-    "diagnosis": {
-      "type": "string"
+    "diagnosis_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the technician diagnosis. Never plaintext."
+    },
+    "offer_items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": [],
+      "description": "Quote lines [{kind,title,qty,price,cost,warranty_days}] (Reparo offer_items)"
+    },
+    "tpv_paid_total_eur": {
+      "type": "number"
+    },
+    "tpv_paid_at": {
+      "type": "string",
+      "format": "date-time"
     },
     "budget_status": {
       "type": "string",
@@ -141,8 +174,10 @@
       "type": "string",
       "description": "RepairTicket id (same tenant; enforced in backend functions)"
     },
-    "customer_signature_url": {
-      "type": "string"
+    "customer_signature_url_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the signed resguardo image URL. Never plaintext."
     },
     "notify_whatsapp": {
       "type": "boolean",
@@ -158,7 +193,7 @@
     "customer_id",
     "device_type",
     "brand",
-    "reported_fault"
+    "reported_fault_enc"
   ],
   "rls": {
     "create": false,

@@ -9,6 +9,8 @@ export type EntityApi = {
   create(data: Record<string, unknown>): Promise<Row>;
   bulkCreate?(data: Record<string, unknown>[]): Promise<Row[]>;
   update(id: string, data: Record<string, unknown>): Promise<Row>;
+  /** Conditional bulk write (used for atomic counters, as Reparo allocateOrderNumber does). */
+  updateMany?(query: Record<string, unknown>, update: { $set: Record<string, unknown> }): Promise<{ updated?: number; modified?: number; count?: number }>;
   delete(id: string): Promise<unknown>;
 };
 export type Entities = Record<string, EntityApi>;

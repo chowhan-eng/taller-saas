@@ -39,7 +39,7 @@ export async function encodeCustomer(fc: FieldCrypto, tenantId: string, c: Custo
   };
 }
 
-export async function decodeCustomer(fc: FieldCrypto, row: Row) {
+export async function decodeCustomer(fc: FieldCrypto, row: Row): Promise<Row & { full_name: string; phone_e164: string | null }> {
   const tenantId = row.tenant_id as string;
   const { full_name_enc, phone_enc, phone_hash: _h, ...rest } = row;
   return {

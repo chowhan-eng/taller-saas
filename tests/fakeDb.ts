@@ -20,6 +20,11 @@ export function fakeDb(seed: Record<string, Row[]> = {}): Entities & { _rows: Re
       Object.assign(row, data);
       return { ...row };
     },
+    updateMany: async (q: Record<string, unknown>, u: { $set: Record<string, unknown> }) => {
+      const hit = table(name).filter((r) => Object.entries(q).every(([k, v]) => r[k] === v));
+      for (const r of hit) Object.assign(r, u.$set);
+      return { updated: hit.length };
+    },
     delete: async (id: string) => { rows[name] = table(name).filter((r) => r.id !== id); },
   });
   return new Proxy({} as Entities & { _rows: Record<string, Row[]> }, {

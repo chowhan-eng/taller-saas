@@ -1,24 +1,15 @@
-// Module: TPV / cierre de caja (Pro only). Scaffold: gate + action router. Port the TPV actions here.
-// Cash data is append-only (CashMovement) and a 'cerrada' CashClosing is immutable — enforce both in handlers.
+// Module: TPV / caja (Pro only). Thin wrapper over shared/tpvApi.ts (Pro gate + counter roles first).
+// The CashDro is driven from the browser through the shop's local «Puente CashDro» (src/lib/cashdro.ts);
+// this backend records the money and the cierre, and stores the CashDro levels snapshot taken at the Z.
 import { createClientFromRequest } from 'npm:@base44/sdk';
 import { json, withJsonErrors } from '../../shared/http.ts';
-import { gateModule } from '../../shared/modules.ts';
-import { find, type Entities } from '../../shared/db.ts';
+import { handleTpv } from '../../shared/tpvApi.ts';
+import type { Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('tpv', async (req) => {
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me().catch(() => null);
-  const body = (await req.json().catch(() => ({}))) as { tenantId?: string; action?: string };
-  const db = base44.asServiceRole.entities as unknown as Entities;
-  const gate = await gateModule(db, user?.id, body.tenantId, 'tpv', ['owner', 'admin', 'counter']);
-  if (!gate.ok) return json({ error: gate.error }, gate.status);
-
-  switch (body.action) {
-    case 'openClosings': {
-      const rows = await find(db.CashClosing, { tenant_id: gate.tenant.id, status: 'abierta' }, { sort: '-created_date', limit: 10 });
-      return json({ closings: rows });
-    }
-    default:
-      return json({ error: 'Acción no disponible todavía.' }, 501);
-  }
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const r = await handleTpv({ db: base44.asServiceRole.entities as unknown as Entities, userId: user?.id }, body);
+  return json(r.body, r.status);
 });

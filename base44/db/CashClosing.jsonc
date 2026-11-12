@@ -2,7 +2,7 @@
 {
   "name": "CashClosing",
   "type": "object",
-  "description": "Daily cash session / cierre de caja. Immutable once cerrada. SQL: public.cash_closings",
+  "description": "Cash session (caja) + its Z cierre. Ported from TPV CashSession / closeCashSession. Immutable once cerrada (functions refuse).",
   "properties": {
     "tenant_id": {
       "type": "string",
@@ -25,65 +25,106 @@
       ],
       "default": "abierta"
     },
-    "opening_float_eur": {
-      "type": "number",
-      "default": 0
-    },
-    "expected_cash_eur": {
-      "type": "number"
-    },
-    "counted_cash_eur": {
-      "type": "number"
-    },
-    "difference_eur": {
-      "type": "number",
-      "description": "counted - expected (computed in function; was a generated column)"
-    },
-    "card_total_eur": {
-      "type": "number"
-    },
-    "card_terminal_total_eur": {
-      "type": "number",
-      "description": "Z report from the datáfono"
-    },
-    "bizum_total_eur": {
-      "type": "number"
-    },
-    "denominations": {
-      "type": "object"
-    },
-    "checklist": {
-      "type": "array",
-      "items": {
-        "type": "object"
-      },
-      "default": []
-    },
-    "difference_reason": {
-      "type": "string"
-    },
-    "cashdro_report": {
-      "type": "object",
-      "description": "raw payload from CashDroPuente (if contracted)"
-    },
     "opened_by": {
-      "type": "string"
-    },
-    "closed_by": {
       "type": "string"
     },
     "opened_at": {
       "type": "string",
       "format": "date-time"
     },
+    "closed_by": {
+      "type": "string"
+    },
     "closed_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "opening_float_eur": {
+      "type": "number",
+      "default": 0
+    },
+    "opening_float_declared_eur": {
+      "type": "number",
+      "description": "Cierre 1. Fondo de ayer, as confirmed by the cashier"
+    },
+    "sales_total_eur": {
+      "type": "number",
+      "description": "Cierre 2. Total ventas (sales − refunds)"
+    },
+    "card_total_system_eur": {
+      "type": "number",
+      "description": "Card payments recorded in the TPV"
+    },
+    "card_total_declared_eur": {
+      "type": "number",
+      "description": "Cierre 3. Card total (editable: datáfono failures)"
+    },
+    "other_non_cash_eur": {
+      "type": "number",
+      "description": "Bizum + transfer + deposit + voucher"
+    },
+    "expected_cash_eur": {
+      "type": "number",
+      "description": "Cierre 4"
+    },
+    "counted_cash_eur": {
+      "type": "number",
+      "description": "Cierre 5. Efectivo real"
+    },
+    "difference_eur": {
+      "type": "number",
+      "description": "Cierre 6. real − esperado"
+    },
+    "withdrawn_cash_eur": {
+      "type": "number",
+      "description": "Cierre 7. Retirado (banco / beneficio)"
+    },
+    "next_day_float_eur": {
+      "type": "number",
+      "description": "Cierre 8. Fondo para mañana = real − retirado; seeds the next opening"
+    },
+    "recharges_total_eur": {
+      "type": "number",
+      "description": "Cierre 9. Phone top-ups sold today (e.g. Disashop)"
+    },
+    "recharges_balance_eur": {
+      "type": "number",
+      "description": "Cierre 10. Balance left at the top-up provider"
+    },
+    "totals_by_method": {
+      "type": "object"
+    },
+    "ticket_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "refund_total_eur": {
+      "type": "number",
+      "default": 0
+    },
+    "z_number": {
+      "type": "integer"
+    },
+    "denominations": {
+      "type": "object",
+      "description": "Counted by denomination {\"50\":2,...}"
+    },
+    "difference_reason": {
+      "type": "string"
+    },
+    "cashdro_report": {
+      "type": "object",
+      "description": "CashDro /levels snapshot taken at the cierre (if the shop has one)"
+    },
+    "cutoff_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Moment the cierre started; later sales/movements move to the next session"
     }
   },
   "required": [
     "tenant_id",
-    "business_date"
+    "status"
   ],
   "rls": {
     "create": false,
