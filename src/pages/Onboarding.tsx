@@ -167,6 +167,7 @@ export default function Onboarding() {
       {step === 3 && (
         <section className="card" style={{ padding: 24 }}>
           <h2>Elige tu plan</h2>
+          <p className="small"><a href="/dashboard/">¿Solo quieres entrar a tu panel? Ir al panel →</a></p>
           <div className="choices" style={{ gridTemplateColumns: '1fr' }}>
             <label className={`choice ${plan === 'starter' ? 'on' : ''}`}>
               <input type="radio" name="plan" checked={plan === 'starter'} onChange={() => setPlan('starter')} />

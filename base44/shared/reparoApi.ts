@@ -16,7 +16,7 @@ import { queueStatusNotice } from './ticketNotify.ts';
 
 export const REPARO_ACTIONS = [
   'createCustomer', 'getCustomer', 'findCustomerByPhone', 'createTicket', 'getTicket', 'listTickets', 'updateTicket',
-  'setStatus', 'setBudget', 'quote', 'applyQuote', 'revealUnlockCode', 'findBySerial',
+  'setStatus', 'setBudget', 'quote', 'applyQuote', 'revealUnlockCode', 'findBySerial', 'shop',
 ] as const;
 
 export type ApiCtx = { db: Entities; fc: FieldCrypto; userId?: string; now?: Date };
@@ -62,7 +62,7 @@ export async function handleReparo(ctx: ApiCtx, body: Body): Promise<ApiResult> 
         const rows = (await find(db.RepairTicket, { tenant_id: tenant.id }, { sort: '-created_date' }))
           .filter((t) => (open ? !CLOSED_STATUSES.includes(t.status as never) : true))
           .filter((t) => (body.status ? t.status === body.status : true))
-          .slice(0, Math.min(200, Number(body.limit) || 50));
+          .slice(Math.max(0, Number(body.offset) || 0), Math.max(0, Number(body.offset) || 0) + Math.min(200, Number(body.limit) || 50));
         const out = [];
         for (const t of rows) {
           const [c] = await find(db.Customer, { id: t.customer_id as string, tenant_id: tenant.id }, { limit: 1 });
@@ -118,6 +118,12 @@ export async function handleReparo(ctx: ApiCtx, body: Body): Promise<ApiResult> 
           service: first.labor_label, options, shopLine: [tenant.trade_name, tenant.address_line, tenant.city].filter(Boolean).join(' · '),
         });
         return ok({ budget_amount_eur: first.pvp_cents / 100, message });
+      }
+      case 'shop': {
+        // What the 58/80 mm resguardo prints (no secrets).
+        const t = tenant;
+        return ok({ shop: { trade_name: t.trade_name, nif: t.nif, address_line: t.address_line, postal_code: t.postal_code, city: t.city,
+          phone: t.phone, ticket_footer: t.ticket_footer, printer_width_mm: t.printer_width_mm } });
       }
       case 'revealUnlockCode':
         return ok({ code: await revealUnlockCode(deps, tenant, actor, role, body.ticketId) });

@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
           onboarding: r('./onboarding/index.html'),
           gracias: r('./onboarding/gracias/index.html'),
           privacidad: r('./privacidad/index.html'),
+          dashboard: r('./dashboard/index.html'),
           login: r('./login/index.html'),
           register: r('./register/index.html'),
           forgot: r('./forgot-password/index.html'),

@@ -2,6 +2,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk';
 import { json, withJsonErrors } from '../../shared/http.ts';
 import { GLOBAL_TENANT } from '../../shared/priceTemplates.ts';
+import { DEFAULT_LABOR_RULES, DEFAULT_MARGIN_RULES } from '../../shared/pricingDefaults.ts';
 import { find, type Entities, type Row } from '../../shared/db.ts';
 
 const DPA_VERSIONS = new Set(['dpa-v1-2026-11']);
@@ -57,6 +58,12 @@ export default withJsonErrors('createTenant', async (req) => {
       if (db.PriceItem.bulkCreate) await db.PriceItem.bulkCreate(rows);
       else for (const r of rows) await db.PriceItem.create(r);
     }
+    // Default auto-quote rules (from the live Reparo app); the shop can edit its own copy later.
+    const withTenant = (r: Record<string, unknown>) => ({ ...r, tenant_id: tenant.id, active: true });
+    const margins = DEFAULT_MARGIN_RULES.map(withTenant);
+    const labors = DEFAULT_LABOR_RULES.map(withTenant);
+    if (db.MarginRule.bulkCreate) await db.MarginRule.bulkCreate(margins); else for (const r of margins) await db.MarginRule.create(r);
+    if (db.LaborRule.bulkCreate) await db.LaborRule.bulkCreate(labors); else for (const r of labors) await db.LaborRule.create(r);
     return json({ tenantId: tenant.id });
   } catch (e) {
     for (const [name, id] of created.reverse()) await db[name].delete(id).catch(() => {});

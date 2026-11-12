@@ -13,6 +13,7 @@ export default function Gracias() {
           Siguiente paso: conectar tu WhatsApp y {trial ? 'enviar tu primer aviso de prueba' : 'imprimir tu primer resguardo de prueba'}. Si te atascas, responde a nuestro email y lo
           dejamos funcionando contigo por videollamada.
         </p>
+        <p><a className="btn inline" href="/dashboard/">Ir a mi panel</a></p>
         <p className="small muted">Recuerda: tienes 30 días de garantía de devolución, sin preguntas.</p>
       </div>
     </main>
