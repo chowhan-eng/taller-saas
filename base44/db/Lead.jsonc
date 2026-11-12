@@ -1,0 +1,107 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "Lead",
+  "type": "object",
+  "description": "Sales lead (platform-level, not tenant data). SQL: public.leads (phone_e164 unique, checked in functions)",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "'web_simulator' | 'places_api' | 'referral' | 'inbound_call'"
+    },
+    "shop_name": {
+      "type": "string"
+    },
+    "contact_name": {
+      "type": "string"
+    },
+    "phone_e164": {
+      "type": "string"
+    },
+    "phone_kind": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "landline",
+        "other"
+      ]
+    },
+    "email": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "google_place_id": {
+      "type": "string"
+    },
+    "google_rating": {
+      "type": "number"
+    },
+    "google_reviews": {
+      "type": "integer"
+    },
+    "website": {
+      "type": "string"
+    },
+    "pain_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "stage": {
+      "type": "string",
+      "default": "new",
+      "description": "new|demo_sent|hot|called|trial|won|lost|do_not_contact"
+    },
+    "consent_whatsapp_demo": {
+      "type": "boolean",
+      "default": false
+    },
+    "consent_commercial_call": {
+      "type": "boolean",
+      "default": false,
+      "description": "LGT 11/2022 art. 66 — explicit, unticked by default"
+    },
+    "consent_text_version": {
+      "type": "string"
+    },
+    "consent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "consent_ip": {
+      "type": "string"
+    },
+    "robinson_checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "do_not_contact": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "source"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": false
+  }
+}

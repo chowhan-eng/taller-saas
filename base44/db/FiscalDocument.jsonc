@@ -1,0 +1,80 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "FiscalDocument",
+  "type": "object",
+  "description": "Invoice issued by the certified Verifactu provider. Immutable except aeat_status. SQL: public.fiscal_documents",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "doc_type": {
+      "type": "string",
+      "enum": [
+        "factura_simplificada",
+        "factura_completa",
+        "rectificativa"
+      ]
+    },
+    "provider": {
+      "type": "string"
+    },
+    "provider_doc_id": {
+      "type": "string"
+    },
+    "series": {
+      "type": "string"
+    },
+    "number": {
+      "type": "string"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_eur": {
+      "type": "number"
+    },
+    "vat_eur": {
+      "type": "number"
+    },
+    "verifactu_hash": {
+      "type": "string"
+    },
+    "qr_url": {
+      "type": "string"
+    },
+    "pdf_url": {
+      "type": "string"
+    },
+    "aeat_status": {
+      "type": "string",
+      "description": "'aceptado' | 'aceptado_con_errores' | 'rechazado' | 'pendiente'"
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "RepairTicket id (same tenant; enforced in backend functions)"
+    },
+    "rectifies_id": {
+      "type": "string",
+      "description": "FiscalDocument id (same tenant; enforced in backend functions)"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "doc_type",
+    "provider",
+    "provider_doc_id",
+    "series",
+    "number",
+    "issued_at",
+    "total_eur",
+    "vat_eur"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

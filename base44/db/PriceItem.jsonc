@@ -1,0 +1,64 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "PriceItem",
+  "type": "object",
+  "description": "Price list. tenant_id '_global' = template copied into each new tenant (seedPriceTemplates). SQL: public.price_items",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id, or '_global' for templates"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "movil",
+        "tablet",
+        "portatil",
+        "sobremesa",
+        "consola",
+        "mando",
+        "smartwatch",
+        "otro"
+      ]
+    },
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "service": {
+      "type": "string",
+      "description": "'Cambio pantalla', 'Conector HDMI', ..."
+    },
+    "price_eur": {
+      "type": "number",
+      "minimum": 0
+    },
+    "price_is_from": {
+      "type": "boolean",
+      "default": true,
+      "description": "\"desde X €\""
+    },
+    "duration_min": {
+      "type": "integer"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "tenant_id",
+    "category",
+    "brand",
+    "service",
+    "price_eur"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

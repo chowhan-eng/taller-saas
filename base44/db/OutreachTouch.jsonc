@@ -1,0 +1,53 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "OutreachTouch",
+  "type": "object",
+  "description": "Founder outreach log. SQL: public.outreach_touches (002)",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Lead id (same tenant; enforced in backend functions)"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "visita",
+        "carta",
+        "llamada_humana",
+        "whatsapp_optin",
+        "email_optin",
+        "evento",
+        "referido"
+      ]
+    },
+    "step": {
+      "type": "string",
+      "description": "e.g. 'D0', 'D2', 'folleto-v1'"
+    },
+    "result": {
+      "type": "string",
+      "description": "'sin_respuesta' | 'interesado' | 'demo' | 'no' | 'baja'"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "lead_id",
+    "channel"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}

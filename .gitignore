@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env.local
+.env.*.local
+*.tsbuildinfo
+# Old Next.js / Supabase CLI leftovers (untracked; safe to delete by hand)
+web/
+supabase/

@@ -1,0 +1,79 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "Customer",
+  "type": "object",
+  "description": "A shop's end customer + WhatsApp consent ledger. SQL: public.customers. Name and phone are AES-256-GCM ciphertext (base44/shared/crypto.ts); unique tenant_id+phone_hash enforced in functions.",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "full_name_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the full name (1-160 chars before encryption). Never plaintext."
+    },
+    "phone_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the phone E.164 without +. Never plaintext."
+    },
+    "phone_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Blind index: HMAC-SHA256(per-tenant key, phone E.164). Lets functions find a customer by phone (BAJA, dedupe) without storing it in clear."
+    },
+    "email": {
+      "type": "string"
+    },
+    "dni_last4": {
+      "type": "string",
+      "pattern": "^[0-9A-Z]{4}$",
+      "description": "minimisation: never store full DNI"
+    },
+    "wa_service_opt_in": {
+      "type": "boolean",
+      "default": false,
+      "description": "repair status notifications (utility)"
+    },
+    "wa_service_opt_in_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "wa_marketing_opt_in": {
+      "type": "boolean",
+      "default": false,
+      "description": "review requests / promos (marketing)"
+    },
+    "wa_marketing_opt_in_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "wa_opted_out": {
+      "type": "boolean",
+      "default": false,
+      "description": "BAJA/STOP => blocks every template"
+    },
+    "wa_opted_out_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "consent_source": {
+      "type": "string",
+      "description": "'mostrador_firma' | 'web' | 'whatsapp'"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "full_name_enc"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

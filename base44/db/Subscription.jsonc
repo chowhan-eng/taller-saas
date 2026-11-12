@@ -1,0 +1,83 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "Subscription",
+  "type": "object",
+  "description": "Stripe subscription mirror; only stripeWebhook changes billing state. SQL: public.subscriptions (one per tenant)",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "stripe_customer_id": {
+      "type": "string"
+    },
+    "stripe_subscription_id": {
+      "type": "string"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "trialing",
+        "active",
+        "past_due",
+        "unpaid",
+        "cancelled",
+        "incomplete"
+      ],
+      "default": "incomplete"
+    },
+    "vip_setup_paid": {
+      "type": "boolean",
+      "default": false,
+      "description": "€199 one-off"
+    },
+    "cashdro_bridge": {
+      "type": "boolean",
+      "default": false,
+      "description": "hardware upsell add-on"
+    },
+    "current_period_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "trial_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "14-day Starter trial start (from Stripe)"
+    },
+    "trial_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cancel_at_period_end": {
+      "type": "boolean",
+      "default": false
+    },
+    "trial_used": {
+      "type": "boolean",
+      "default": false,
+      "description": "A tenant gets at most one free trial"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "plan"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}

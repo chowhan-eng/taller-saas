@@ -1,0 +1,28 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import { captureLoginToken } from '@/lib/base44';
+import Home from '@/pages/Home';
+import Onboarding from '@/pages/Onboarding';
+import Gracias from '@/pages/Gracias';
+import Privacidad from '@/pages/Privacidad';
+
+captureLoginToken();
+
+const path = window.location.pathname.replace(/\/+$/, '').replace(/\/index\.html$/, '') || '/';
+const Page =
+  path === '/onboarding/gracias' ? Gracias :
+  path === '/onboarding' ? Onboarding :
+  path === '/privacidad' ? Privacidad :
+  path === '/' ? Home : NotFound;
+
+function NotFound() {
+  return (
+    <main className="wrap" style={{ padding: '48px 16px' }}>
+      <h1>Página no encontrada</h1>
+      <p><a href="/">Volver al inicio</a></p>
+    </main>
+  );
+}
+
+createRoot(document.getElementById('root')!).render(<StrictMode><Page /></StrictMode>);

@@ -1,0 +1,65 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "TicketEvent",
+  "type": "object",
+  "description": "Append-only status history. SQL: public.ticket_events",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "RepairTicket id (same tenant; enforced in backend functions)"
+    },
+    "from_status": {
+      "type": "string",
+      "enum": [
+        "recibido",
+        "diagnostico",
+        "presupuesto_enviado",
+        "presupuesto_aceptado",
+        "presupuesto_rechazado",
+        "esperando_pieza",
+        "en_reparacion",
+        "listo_recoger",
+        "entregado",
+        "no_reparable",
+        "cancelado"
+      ]
+    },
+    "to_status": {
+      "type": "string",
+      "enum": [
+        "recibido",
+        "diagnostico",
+        "presupuesto_enviado",
+        "presupuesto_aceptado",
+        "presupuesto_rechazado",
+        "esperando_pieza",
+        "en_reparacion",
+        "listo_recoger",
+        "entregado",
+        "no_reparable",
+        "cancelado"
+      ]
+    },
+    "actor_id": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "ticket_id",
+    "to_status"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

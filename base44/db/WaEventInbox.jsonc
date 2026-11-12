@@ -1,0 +1,30 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "WaEventInbox",
+  "type": "object",
+  "description": "Raw Meta webhook payloads (dedupe + replay). SQL: public.wa_events_inbox",
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "phone_number_id": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "payload"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

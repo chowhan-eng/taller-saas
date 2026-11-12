@@ -1,0 +1,235 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "Tenant",
+  "type": "object",
+  "description": "A repair shop (one tenant). SQL: public.tenants",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{3,40}$",
+      "description": "Unique (checked in createTenant)"
+    },
+    "trade_name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 120,
+      "description": "nombre comercial"
+    },
+    "legal_name": {
+      "type": "string",
+      "description": "razón social"
+    },
+    "nif": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{9}$",
+      "description": "NIF/CIF sin guiones"
+    },
+    "is_autonomo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Verifactu deadline: 1 Jul 2027 (autónomo) vs 1 Jan 2027 (IS)"
+    },
+    "address_line": {
+      "type": "string"
+    },
+    "postal_code": {
+      "type": "string",
+      "pattern": "^[0-5][0-9]{4}$"
+    },
+    "city": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Europe/Madrid"
+    },
+    "printer_width_mm": {
+      "type": "integer",
+      "enum": [
+        58,
+        80
+      ],
+      "default": 80
+    },
+    "ticket_footer": {
+      "type": "string",
+      "default": "Garantía mínima de 3 meses en la reparación (art. 120 TRLGDCU / RD 58/1988). Conserve este resguardo para retirar su equipo."
+    },
+    "default_warranty_days": {
+      "type": "integer",
+      "minimum": 90,
+      "default": 90
+    },
+    "opening_hours": {
+      "type": "object",
+      "default": {
+        "mon": [
+          [
+            "10:00",
+            "14:00"
+          ],
+          [
+            "17:00",
+            "20:30"
+          ]
+        ],
+        "tue": [
+          [
+            "10:00",
+            "14:00"
+          ],
+          [
+            "17:00",
+            "20:30"
+          ]
+        ],
+        "wed": [
+          [
+            "10:00",
+            "14:00"
+          ],
+          [
+            "17:00",
+            "20:30"
+          ]
+        ],
+        "thu": [
+          [
+            "10:00",
+            "14:00"
+          ],
+          [
+            "17:00",
+            "20:30"
+          ]
+        ],
+        "fri": [
+          [
+            "10:00",
+            "14:00"
+          ],
+          [
+            "17:00",
+            "20:30"
+          ]
+        ],
+        "sat": [
+          [
+            "10:00",
+            "14:00"
+          ]
+        ],
+        "sun": []
+      }
+    },
+    "wa_mode": {
+      "type": "string",
+      "enum": [
+        "shared_number",
+        "own_number_coexistence",
+        "own_number_cloud"
+      ],
+      "default": "shared_number"
+    },
+    "wa_waba_id": {
+      "type": "string"
+    },
+    "wa_phone_number_id": {
+      "type": "string",
+      "description": "Unique across tenants (check in function)"
+    },
+    "wa_display_phone": {
+      "type": "string"
+    },
+    "wa_quality_rating": {
+      "type": "string",
+      "description": "GREEN / YELLOW / RED mirrored from Meta webhooks"
+    },
+    "wa_paused": {
+      "type": "boolean",
+      "default": false,
+      "description": "kill-switch per tenant"
+    },
+    "wa_daily_cap": {
+      "type": "integer",
+      "default": 250
+    },
+    "google_review_url": {
+      "type": "string"
+    },
+    "review_delay_hours": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 168,
+      "default": 24
+    },
+    "fiscal_provider": {
+      "type": "string",
+      "description": "'verifacti' | 'b2brouter' | null (no invoicing)"
+    },
+    "fiscal_provider_ref": {
+      "type": "string",
+      "description": "Tenant id at the provider. API secret lives in Base44 secrets, never here."
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro"
+      ],
+      "default": "starter"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "onboarding",
+        "active",
+        "past_due",
+        "suspended",
+        "cancelled"
+      ],
+      "default": "onboarding"
+    },
+    "onboarding_step": {
+      "type": "integer",
+      "default": 0
+    },
+    "dpa_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RGPD art. 28 acceptance (required before go-live)"
+    },
+    "dpa_accepted_by": {
+      "type": "string"
+    },
+    "dpa_version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "slug",
+    "trade_name"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}

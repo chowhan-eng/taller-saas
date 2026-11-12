@@ -1,0 +1,94 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "CashClosing",
+  "type": "object",
+  "description": "Daily cash session / cierre de caja. Immutable once cerrada. SQL: public.cash_closings",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "business_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "register_code": {
+      "type": "string",
+      "default": "CAJA1"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "abierta",
+        "en_cierre",
+        "cerrada"
+      ],
+      "default": "abierta"
+    },
+    "opening_float_eur": {
+      "type": "number",
+      "default": 0
+    },
+    "expected_cash_eur": {
+      "type": "number"
+    },
+    "counted_cash_eur": {
+      "type": "number"
+    },
+    "difference_eur": {
+      "type": "number",
+      "description": "counted - expected (computed in function; was a generated column)"
+    },
+    "card_total_eur": {
+      "type": "number"
+    },
+    "card_terminal_total_eur": {
+      "type": "number",
+      "description": "Z report from the datáfono"
+    },
+    "bizum_total_eur": {
+      "type": "number"
+    },
+    "denominations": {
+      "type": "object"
+    },
+    "checklist": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": []
+    },
+    "difference_reason": {
+      "type": "string"
+    },
+    "cashdro_report": {
+      "type": "object",
+      "description": "raw payload from CashDroPuente (if contracted)"
+    },
+    "opened_by": {
+      "type": "string"
+    },
+    "closed_by": {
+      "type": "string"
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "business_date"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

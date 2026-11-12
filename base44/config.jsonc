@@ -1,0 +1,15 @@
+// Base44 Project Configuration — Taller SaaS (docs/07-BASE44-ARCHITECTURE.md)
+{
+  "name": "taller-saas",
+  "description": "Resguardos, etiquetas y avisos de WhatsApp para talleres de reparación",
+  // The landing page must be reachable by anonymous visitors.
+  "visibility": "public",
+  // Entity schemas (the ported SQL schema) live in base44/db/.
+  "entitiesDir": "./db",
+  "functionsDir": "./functions",
+  "site": {
+    "outputDirectory": "./dist",
+    "installCommand": "npm ci",
+    "buildCommand": "npm run build"
+  }
+}

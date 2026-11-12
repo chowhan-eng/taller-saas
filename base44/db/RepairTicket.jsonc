@@ -1,0 +1,169 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "RepairTicket",
+  "type": "object",
+  "description": "Repair ticket / resguardo de depósito (NOT an invoice). SQL: public.repair_tickets",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "ticket_number": {
+      "type": "string",
+      "description": "YYYY-000123 per tenant per year"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer id (same tenant; enforced in backend functions)"
+    },
+    "device_type": {
+      "type": "string",
+      "enum": [
+        "movil",
+        "tablet",
+        "portatil",
+        "sobremesa",
+        "consola",
+        "mando",
+        "smartwatch",
+        "otro"
+      ]
+    },
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "serial_imei": {
+      "type": "string"
+    },
+    "unlock_code_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the device PIN / unlock pattern. Never plaintext."
+    },
+    "accessories": {
+      "type": "string",
+      "description": "'cargador, funda, tarjeta SIM'"
+    },
+    "physical_condition": {
+      "type": "string"
+    },
+    "reported_fault": {
+      "type": "string"
+    },
+    "diagnosis": {
+      "type": "string"
+    },
+    "budget_status": {
+      "type": "string",
+      "enum": [
+        "no_requerido",
+        "pendiente",
+        "enviado",
+        "aceptado",
+        "rechazado"
+      ],
+      "default": "pendiente"
+    },
+    "budget_amount_eur": {
+      "type": "number",
+      "minimum": 0
+    },
+    "budget_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "budget_answered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "diagnosis_fee_eur": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "deposit_eur": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "señal"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "recibido",
+        "diagnostico",
+        "presupuesto_enviado",
+        "presupuesto_aceptado",
+        "presupuesto_rechazado",
+        "esperando_pieza",
+        "en_reparacion",
+        "listo_recoger",
+        "entregado",
+        "no_reparable",
+        "cancelado"
+      ],
+      "default": "recibido"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 0
+    },
+    "technician_id": {
+      "type": "string"
+    },
+    "promised_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ready_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "warranty_days": {
+      "type": "integer",
+      "minimum": 90,
+      "default": 90
+    },
+    "warranty_until": {
+      "type": "string",
+      "format": "date"
+    },
+    "warranty_parent_id": {
+      "type": "string",
+      "description": "RepairTicket id (same tenant; enforced in backend functions)"
+    },
+    "customer_signature_url": {
+      "type": "string"
+    },
+    "notify_whatsapp": {
+      "type": "boolean",
+      "default": true
+    },
+    "opened_by_user_id": {
+      "type": "string",
+      "description": "SQL created_by (renamed: created_by is a Base44 built-in field)"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "customer_id",
+    "device_type",
+    "brand",
+    "reported_fault"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

@@ -1,0 +1,45 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "DemoRequest",
+  "type": "object",
+  "description": "One row per web demo request (rate limiting + audit). SQL: public.demo_requests",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Lead id (same tenant; enforced in backend functions)"
+    },
+    "phone_e164": {
+      "type": "string"
+    },
+    "ip": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "turnstile_ok": {
+      "type": "boolean",
+      "default": false
+    },
+    "wa_message_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "default": "queued"
+    }
+  },
+  "required": [
+    "phone_e164"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}

@@ -1,0 +1,113 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "WhatsappLog",
+  "type": "object",
+  "description": "WhatsApp outbox/inbox. idempotency_key unique per tenant (checked before insert). SQL: public.whatsapp_logs",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer id (same tenant; enforced in backend functions)"
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "RepairTicket id (same tenant; enforced in backend functions)"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "outbound",
+        "inbound"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "utility",
+        "marketing",
+        "authentication",
+        "service"
+      ],
+      "default": "utility"
+    },
+    "template_name": {
+      "type": "string"
+    },
+    "template_lang": {
+      "type": "string",
+      "default": "es"
+    },
+    "body_preview_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the truncated message text, for the inbox UI. Never plaintext."
+    },
+    "to_phone_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the recipient phone. Never plaintext."
+    },
+    "from_phone_enc": {
+      "type": "string",
+      "pattern": "^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$",
+      "description": "AES-256-GCM ciphertext of the sender phone (inbound). Never plaintext."
+    },
+    "phone_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Blind index: HMAC-SHA256(per-tenant key, phone E.164). Lets functions find a customer by phone (BAJA, dedupe) without storing it in clear."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "e.g. ticket:<id>:status:listo_recoger"
+    },
+    "wa_message_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "sent",
+        "delivered",
+        "read",
+        "failed",
+        "blocked_opt_out",
+        "blocked_hours",
+        "blocked_duplicate"
+      ],
+      "default": "queued"
+    },
+    "error_code": {
+      "type": "integer"
+    },
+    "error_title": {
+      "type": "string"
+    },
+    "attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "send_after": {
+      "type": "string",
+      "format": "date-time",
+      "description": "business hours / review delay"
+    },
+    "cost_eur": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "direction"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "compilerOptions": { "strict": true, "lib": ["deno.window", "deno.ns", "dom"] },
+  "imports": { "base44:runtime": "./shared/runtime-shim.ts" }
+}

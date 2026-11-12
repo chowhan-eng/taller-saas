@@ -1,0 +1,28 @@
+// Seed data (was the INSERT at the end of 001_multi_tenant_core.sql). Copied into every new tenant.
+export const GLOBAL_TENANT = '_global';
+export const PRICE_TEMPLATES: { category: string; brand: string; model: string; service: string; price_eur: number; price_is_from: boolean; duration_min: number }[] = [
+  { category: 'movil', brand: 'Apple', model: 'iPhone 11', service: 'Cambio pantalla', price_eur: 69, price_is_from: true, duration_min: 45 },
+  { category: 'movil', brand: 'Apple', model: 'iPhone 12 / 12 Pro', service: 'Cambio pantalla', price_eur: 89, price_is_from: true, duration_min: 45 },
+  { category: 'movil', brand: 'Apple', model: 'iPhone 13', service: 'Cambio pantalla', price_eur: 109, price_is_from: true, duration_min: 45 },
+  { category: 'movil', brand: 'Apple', model: 'iPhone 14', service: 'Cambio pantalla', price_eur: 129, price_is_from: true, duration_min: 45 },
+  { category: 'movil', brand: 'Apple', model: 'iPhone 15', service: 'Cambio pantalla', price_eur: 169, price_is_from: true, duration_min: 60 },
+  { category: 'movil', brand: 'Apple', model: 'iPhone (todos)', service: 'Cambio batería', price_eur: 49, price_is_from: true, duration_min: 30 },
+  { category: 'movil', brand: 'Apple', model: 'iPhone (todos)', service: 'Conector de carga', price_eur: 49, price_is_from: true, duration_min: 45 },
+  { category: 'movil', brand: 'Samsung', model: 'Galaxy A (serie A)', service: 'Cambio pantalla', price_eur: 69, price_is_from: true, duration_min: 60 },
+  { category: 'movil', brand: 'Samsung', model: 'Galaxy S22 / S23', service: 'Cambio pantalla', price_eur: 169, price_is_from: true, duration_min: 90 },
+  { category: 'movil', brand: 'Samsung', model: 'Galaxy S24', service: 'Cambio pantalla', price_eur: 199, price_is_from: true, duration_min: 90 },
+  { category: 'movil', brand: 'Xiaomi', model: 'Redmi Note', service: 'Cambio pantalla', price_eur: 59, price_is_from: true, duration_min: 60 },
+  { category: 'movil', brand: 'Genérico', model: 'Cualquiera', service: 'Diagnóstico', price_eur: 0, price_is_from: false, duration_min: 15 },
+  { category: 'consola', brand: 'Sony', model: 'PS5', service: 'Reparación conector HDMI', price_eur: 99, price_is_from: true, duration_min: 120 },
+  { category: 'consola', brand: 'Sony', model: 'PS5', service: 'Limpieza + pasta térmica / metal líquido', price_eur: 59, price_is_from: true, duration_min: 90 },
+  { category: 'consola', brand: 'Sony', model: 'PS4', service: 'Reparación conector HDMI', price_eur: 79, price_is_from: true, duration_min: 120 },
+  { category: 'mando', brand: 'Sony', model: 'DualSense', service: 'Reparación drift joystick', price_eur: 35, price_is_from: true, duration_min: 45 },
+  { category: 'consola', brand: 'Nintendo', model: 'Switch', service: 'Microsoldadura chip de carga (M92T36 / BQ24193)', price_eur: 89, price_is_from: true, duration_min: 180 },
+  { category: 'consola', brand: 'Nintendo', model: 'Switch', service: 'Cambio pantalla', price_eur: 79, price_is_from: true, duration_min: 90 },
+  { category: 'mando', brand: 'Nintendo', model: 'Joy-Con', service: 'Reparación drift', price_eur: 25, price_is_from: true, duration_min: 30 },
+  { category: 'portatil', brand: 'Genérico', model: 'Cualquiera', service: 'Formateo + Windows + copia de datos', price_eur: 49, price_is_from: true, duration_min: 120 },
+  { category: 'portatil', brand: 'Genérico', model: 'Cualquiera', service: 'Cambio a SSD + clonado', price_eur: 39, price_is_from: true, duration_min: 90 },
+  { category: 'portatil', brand: 'Genérico', model: 'Cualquiera', service: 'Reparación bisagras', price_eur: 59, price_is_from: true, duration_min: 120 },
+  { category: 'sobremesa', brand: 'Genérico', model: 'Cualquiera', service: 'Limpieza + optimización', price_eur: 35, price_is_from: true, duration_min: 60 },
+  { category: 'tablet', brand: 'Apple', model: 'iPad', service: 'Cambio cristal táctil', price_eur: 79, price_is_from: true, duration_min: 120 },
+];

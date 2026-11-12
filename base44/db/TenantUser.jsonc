@@ -1,0 +1,51 @@
+// Ported from the removed supabase/migrations. See docs/07-BASE44-ARCHITECTURE.md.
+{
+  "name": "TenantUser",
+  "type": "object",
+  "description": "Membership user <-> tenant with role. SQL: public.tenant_users (PK tenant_id+user_id; uniqueness enforced in functions)",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant id. Immutable after create (enforced in backend functions)."
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Base44 user id"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "admin",
+        "counter",
+        "technician"
+      ],
+      "default": "counter"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "tenant_id",
+    "user_id",
+    "role"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}
