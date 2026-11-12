@@ -63,7 +63,7 @@ export default function Home() {
         <div className="wrap">
           <h2>Cómo funciona</h2>
           <div className="grid3">
-            <div className="card"><h3>1. Alta en 30 segundos</h3><p>Teléfono, modelo y avería. Imprime el resguardo y la etiqueta.</p></div>
+            <div className="card"><h3>1. Alta en 30 segundos <span className="small muted">(Solo plan Pro)</span></h3><p>Teléfono, modelo y avería. Imprime el resguardo y la etiqueta.</p></div>
             <div className="card"><h3>2. Un toque y avisado</h3><p>Cambias el estado a «Presupuesto» o «Listo» y tu cliente recibe el WhatsApp desde el número de tu taller.</p></div>
             <div className="card"><h3>3. La reseña, sola</h3><p>24 horas después de entregar, le pedimos la reseña con un enlace directo a tu ficha de Google.</p></div>
           </div>
