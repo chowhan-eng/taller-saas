@@ -1,0 +1,19 @@
+{
+  "name": "SaleLine",
+  "type": "object",
+  "description": "What a TPV sale contained (one row per cart line), so a return can refund a sale or a single line and put stock back.",
+  "properties": {
+    "tenant_id": { "type": "string" },
+    "sale_ref": { "type": "string" },
+    "closing_id": { "type": "string" },
+    "product_id": { "type": "string" },
+    "ticket_id": { "type": "string" },
+    "name": { "type": "string", "maxLength": 160 },
+    "qty": { "type": "integer", "minimum": 1 },
+    "returned_qty": { "type": "integer", "default": 0 },
+    "unit_price_eur": { "type": "number", "minimum": 0 },
+    "iva_pct": { "type": "number", "default": 21 }
+  },
+  "required": ["tenant_id", "sale_ref", "name", "qty", "unit_price_eur"],
+  "rls": { "create": false, "read": false, "update": false, "delete": false }
+}

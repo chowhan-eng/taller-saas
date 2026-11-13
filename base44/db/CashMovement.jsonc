@@ -46,6 +46,10 @@
       "type": "string",
       "description": "FiscalDocument id (same tenant; enforced in backend functions)"
     },
+    "refund_of": {
+      "type": "string",
+      "description": "sale_ref of the sale this refund returns"
+    },
     "sale_ref": {
       "type": "string",
       "description": "Groups the payments of one sale"

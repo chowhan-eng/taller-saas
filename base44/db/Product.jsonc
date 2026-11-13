@@ -10,6 +10,8 @@
     "price_eur": { "type": "number", "minimum": 0 },
     "iva_pct": { "type": "number", "default": 21 },
     "color": { "type": "string" },
+    "track_stock": { "type": "boolean", "default": false, "description": "When true the sale decrements `stock` and a return puts it back" },
+    "stock": { "type": "integer", "default": 0 },
     "active": { "type": "boolean", "default": true }
   },
   "required": ["tenant_id", "name", "price_eur"],

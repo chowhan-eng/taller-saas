@@ -37,8 +37,8 @@ cifrado AES-256-GCM; no hay acceso directo del navegador a las entidades.
 | Iconos por tipo de dispositivo | ✅ | |
 | Campo PIN / patrón visual | ✅ | PIN enmascarado con revelado (solo titular/admin, queda registrado) y patrón 3×3 |
 | Scroll infinito de 20 en lista **y** búsqueda | ✅ | paginación en servidor, 20 por bloque |
-| Presupuestos con comparador lado a lado | 🟡 | Androgeek · SpainSellers · MuchoRepuesto + proveedores propios, **con precios escritos o recordados**. No hay scraping en vivo (requiere sesiones de proveedor por taller) |
-| Memoria de precios y alerta de cambio | ✅ | |
+| Presupuestos con comparador lado a lado + búsqueda en vivo | 🟡 | **Androgeek en vivo** (precio de distribuidor con la cuenta del taller, público sin ella). **SpainSellers en vivo** (CSV del taller, o categorías públicas + precio de distribuidor; sin cuenta el precio es una *estimación −20 %* marcada). **MuchoRepuesto solo enlace**: su web tiene CAPTCHA y, como en tu Reparo, no se consulta automáticamente. Cuentas cifradas por taller, sesiones nunca compartidas |
+| Memoria de precios y alerta de cambio | ✅ | por proveedor y SKU; la búsqueda marca «antes X €» si el coste cambió |
 | Mano de obra personalizable + IVA 21 % | ✅ | desglose base / IVA / PVP / beneficio |
 | Vista previa e impresión 58 mm y 80 mm (resguardo y etiqueta) | ✅ | |
 | Enlace del teléfono → conversación de WhatsApp | ✅ | desde la tabla y desde la ficha |
@@ -56,7 +56,8 @@ cifrado AES-256-GCM; no hay acceso directo del navegador a las entidades.
 | Puente CashDro: URL/IP, estado en vivo, fondo objetivo, niveles | ✅ | config en el navegador; la tarjeta no está integrada con datáfono |
 | Cierre: Paso 1 X · Paso 2 Informes · Paso 3 Z | ✅ | 10 casillas, diferencia, fondo de mañana, Disashop independiente, imprimir Z, históricos |
 | «Cerrar y enviar informe» por correo | ❌ | no portado |
-| Devoluciones desde la UI | ❌ | el backend las soporta; falta pantalla |
+| Devoluciones (venta completa, línea o importe) | ✅ | pestaña «Devoluciones»: devuelve stock de `Product`, apunta movimientos NEGATIVOS por forma de pago en la caja abierta y el Cierre los resta. El efectivo se entrega a mano (no hay payout automático por CashDro) |
+| Stock de productos | ✅ | opcional por producto; la venta lo descuenta y la devolución lo repone |
 
 ## Verificación
 `tsc` limpio, 136 tests, `deno check` de las 13 funciones y build. **No** se ha probado la UI con datos reales ni con un puente CashDro físico.

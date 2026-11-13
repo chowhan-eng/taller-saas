@@ -6,11 +6,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Send, Trash2 } from 'lucide-react';
 import { euros, mod } from '../api';
 import { Alert, Modal, useDash } from '../ui';
+import SupplierSearch, { type LiveOffer } from './SupplierSearch';
 
 export const SUPPLIERS = ['Androgeek', 'SpainSellers', 'MuchoRepuesto'];
 type Opt = { net_cost_cents: number; margin_pct: number; part_cents: number; shipping_cents: number; labor_cents: number; iva_cents: number; invoice_base_cents: number; pvp_cents: number; profit_cents: number; tier?: number; quality_label?: string; part_title?: string; labor_label?: string };
 type Mem = { id: string; part_label: string; supplier: string; price_eur: number; previous_price_eur: number | null; tax_mode: string; shipping_eur: number; changed_at: string | null };
-type Line = { supplier: string; price: string; shipping: string; taxMode: 'gross' | 'net'; opt?: Opt; use: boolean };
+type Line = { supplier: string; price: string; shipping: string; taxMode: 'gross' | 'net'; opt?: Opt; use: boolean; sku?: string; url?: string };
 
 const num = (v: string) => { const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 
@@ -50,6 +51,21 @@ export default function Presupuestar({ ticket, onClose, onApplied }: { ticket: R
   }
   const upd = (i: number, p: Partial<Line>) => setLines((ls) => ls.map((l, x) => (x === i ? { ...l, ...p, opt: p.price !== undefined || p.shipping !== undefined || p.taxMode ? undefined : l.opt } : l)));
 
+  // «Usar» on a live result: fills (or adds) that supplier's column with its NET cost and remembers it by SKU.
+  async function useOffer(o: LiveOffer) {
+    if (o.net_cost_cents == null) return;
+    const price = (o.net_cost_cents / 100).toFixed(2);
+    if (!part.trim()) setPart(o.title);
+    setLines((ls) => {
+      const i = ls.findIndex((l) => l.supplier === o.source_name);
+      const next = { supplier: o.source_name, price, shipping: i >= 0 ? ls[i].shipping : '', taxMode: 'net' as const, use: false, sku: o.sku, url: o.url };
+      return i >= 0 ? ls.map((l, x) => (x === i ? next : l)) : [...ls, next];
+    });
+    if (o.saved?.changed) setAlerts((a) => [...a, `${o.source_name}: ${euros(o.saved!.price_eur)} → ${euros(o.net_cost_cents! / 100)}`]);
+    await mod('reparo', ctx, 'savePartPrice', { label: o.title, supplier: o.source_name, sku: o.sku, url: o.url, priceEur: Number(price), taxMode: 'net' }).catch(() => {});
+    loadMem(o.title).catch(() => {});
+  }
+
   async function compute() {
     setMsg(null); setBusy(true);
     try {
@@ -69,7 +85,7 @@ export default function Presupuestar({ ticket, onClose, onApplied }: { ticket: R
         const a: string[] = [];
         for (const l of out) {
           if (!(num(l.price) > 0)) continue;
-          const r = await mod<{ change: { from: number; to: number } | null }>('reparo', ctx, 'savePartPrice', { label: part, supplier: l.supplier, priceEur: num(l.price), taxMode: l.taxMode, shippingEur: num(l.shipping) });
+          const r = await mod<{ change: { from: number; to: number } | null }>('reparo', ctx, 'savePartPrice', { label: part, supplier: l.supplier, priceEur: num(l.price), taxMode: l.taxMode, shippingEur: num(l.shipping), sku: l.sku, url: l.url });
           if (r.change) a.push(`${l.supplier}: ${euros(r.change.from)} → ${euros(r.change.to)}`);
         }
         setAlerts(a);
@@ -105,6 +121,8 @@ export default function Presupuestar({ ticket, onClose, onApplied }: { ticket: R
           <label><span className="hc-label">Mano de obra (€)</span><input className="hc-input" inputMode="decimal" value={labor} onChange={(e) => setLabor(e.target.value)} placeholder="según tus reglas" /></label>
           <label><span className="hc-label">Concepto</span><input className="hc-input" value={laborLabel} onChange={(e) => setLaborLabel(e.target.value)} placeholder="Mano de obra" /></label>
         </div>
+
+        <SupplierSearch initialQuery={[String(ticket.brand ?? ''), String(ticket.model ?? '')].filter(Boolean).length ? `pantalla ${[ticket.brand, ticket.model].filter(Boolean).join(' ')}` : ''} onUse={useOffer} />
 
         {alerts.length > 0 && (
           <Alert kind="warn"><strong>El precio de proveedor ha cambiado:</strong> {alerts.join(' · ')}. Revisa el presupuesto antes de enviarlo.</Alert>

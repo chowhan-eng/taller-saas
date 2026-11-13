@@ -6,14 +6,15 @@ import { Alert, cx, useDash } from '../ui';
 import type { SessionTotals } from '../../../base44/shared/cash.ts';
 import Venta from './Venta';
 import Cierre from './Cierre';
+import Devoluciones from './Devoluciones';
 import CashdroPanel, { LinkLight, useCashdroLink } from './Cashdro';
 
 export type Summary = {
   session: Record<string, unknown> | null; totals: SessionTotals | null; movements: Record<string, unknown>[];
   previous: { next_day_float: number | null; recharges_balance: number | null; z_number: number | null } | null;
 };
-type TabKey = 'venta' | 'caja' | 'cierre' | 'cashdro';
-const TABS: [TabKey, string][] = [['venta', 'Venta'], ['caja', 'Caja'], ['cierre', 'Cierre de caja'], ['cashdro', 'CashDro']];
+type TabKey = 'venta' | 'devoluciones' | 'caja' | 'cierre' | 'cashdro';
+const TABS: [TabKey, string][] = [['venta', 'Venta'], ['devoluciones', 'Devoluciones'], ['caja', 'Caja'], ['cierre', 'Cierre de caja'], ['cashdro', 'CashDro']];
 const KIND: Record<string, string> = { sale: 'Venta', refund: 'Devolución', cash_in: 'Entrada', cash_out: 'Salida' };
 const METHOD: Record<string, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia', deposit: 'Señal', voucher: 'Vale' };
 
@@ -121,6 +122,7 @@ export default function Tpv() {
           </nav>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {tab === 'venta' && <Venta reviewUrl={reviewUrl} onSold={reload} />}
+            {tab === 'devoluciones' && <Devoluciones onDone={reload} />}
             {tab === 'caja' && s.totals && <CajaPanel s={s} reload={reload} />}
             {tab === 'cierre' && s.totals && <Cierre s={s} reload={reload} onClosed={(r) => { setZ(r); setTab('venta'); reload(); }} />}
             {tab === 'cashdro' && <CashdroPanel />}

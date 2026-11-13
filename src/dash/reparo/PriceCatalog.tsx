@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { euros, mod, when } from '../api';
 import { Alert, useDash, useDebounced } from '../ui';
 import { SUPPLIERS } from './Presupuestar';
+import { SupplierAccounts } from './SupplierSearch';
 
 type Row = { id: string; part_label: string; supplier: string; price_eur: number; previous_price_eur: number | null; tax_mode: string; shipping_eur: number; changed_at: string | null };
 
@@ -14,6 +15,7 @@ export default function PriceCatalog() {
   const dq = useDebounced(q);
   const [form, setForm] = useState({ label: '', supplier: SUPPLIERS[0], price: '', shipping: '' });
   const [err, setErr] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState(false);
 
   const load = useCallback(async () => setRows((await mod<{ prices: Row[] }>('reparo', ctx, 'listPartPrices', { q: dq })).prices), [ctx, dq]);
   useEffect(() => { load().catch((e) => setErr((e as Error).message)); }, [load]);
@@ -32,6 +34,7 @@ export default function PriceCatalog() {
     <div className="space-y-4 p-5">
       <div>
         <h2 className="text-xl font-bold">Catálogo de precios de proveedor</h2>
+        <button type="button" className="hc-btn-ghost mb-2" onClick={() => setAccounts(true)}>Cuentas de proveedor</button>
         <p className="text-sm text-hc-muted">Aquí se recuerda el último coste de cada pieza en cada proveedor. Si un precio cambia, se marca para que revises tus presupuestos.</p>
       </div>
       {changed.length > 0 && <Alert kind="warn"><strong>{changed.length} precio(s) han cambiado:</strong> {changed.slice(0, 4).map((r) => `${r.part_label} (${r.supplier}) ${euros(r.previous_price_eur)} → ${euros(r.price_eur)}`).join(' · ')}{changed.length > 4 ? '…' : ''}</Alert>}
@@ -66,6 +69,7 @@ export default function PriceCatalog() {
           </tbody>
         </table>
       </div>
+      {accounts && <SupplierAccounts onClose={() => setAccounts(false)} />}
     </div>
   );
 }

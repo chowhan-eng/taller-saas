@@ -1,6 +1,6 @@
 // "Cobrar" dialog: payment split Efectivo / Tarjeta (+ Bizum), cash through the CashDro when the bridge is on,
 // and the Google-review prompt (QR + daily counter) shown for at least 2 seconds when the charge completes.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { Banknote, CreditCard, Smartphone, Star } from 'lucide-react';
 import { euros, mod, uid } from '../api';
@@ -51,7 +51,7 @@ export function ReviewPrompt({ url, count }: { url: string | null; count: number
   );
 }
 
-export type Cart = { key: string; name: string; price: number; qty: number; iva: number; ticketId?: string }[];
+export type Cart = { key: string; name: string; price: number; qty: number; iva: number; ticketId?: string; productId?: string }[];
 type Method = 'cash' | 'card' | 'bizum';
 
 export default function CobrarDialog({ cart, total, reviewUrl, onClose, onDone }: { cart: Cart; total: number; reviewUrl: string | null; onClose: () => void; onDone: () => void }) {
@@ -64,6 +64,7 @@ export default function CobrarDialog({ cart, total, reviewUrl, onClose, onDone }
   const [canContinue, setCanContinue] = useState(false);
   const [count, setCount] = useState(reviewsToday());
   const useMachine = cashdroEnabled();
+  const requestId = useRef(uid()); // same id on a retry: the server never records the sale (or takes stock out) twice
 
   const val = (m: Method) => { const p = parseMoney(amounts[m]); return p === null || Number.isNaN(p) ? 0 : p; };
   const paid = Math.round((val('cash') + val('card') + val('bizum')) * 100) / 100;
@@ -99,7 +100,8 @@ export default function CobrarDialog({ cart, total, reviewUrl, onClose, onDone }
       setPhase('Guardando…');
       const reason = cart.map((l) => `${l.qty}× ${l.name}`).join(', ').slice(0, 190);
       // A sale that pays repair tickets is recorded once per ticket so each ticket shows what it paid.
-      await mod('tpv', ctx, 'recordSale', { kind: 'sale', payments, reason, client_request_id: uid(), cashdro_operation_id: cashdroOperationId, ticketId: tickets.length === 1 ? tickets[0] : undefined });
+      await mod('tpv', ctx, 'recordSale', { kind: 'sale', payments, reason, client_request_id: requestId.current, cashdro_operation_id: cashdroOperationId, ticketId: tickets.length === 1 ? tickets[0] : undefined,
+        lines: cart.map((l) => ({ product_id: l.productId, ticket_id: l.ticketId, name: l.name, qty: l.qty, unit_price_eur: l.price, iva_pct: l.iva })) });
       setDone(true);
     } catch (e) { setErr((e as Error).message); } finally { setPhase(null); }
   }

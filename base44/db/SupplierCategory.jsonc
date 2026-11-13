@@ -1,0 +1,14 @@
+{
+  "name": "SupplierCategory",
+  "type": "object",
+  "description": "Public SpainSellers per-model category index (no tenant data; shared cache rebuilt weekly on demand).",
+  "properties": {
+    "source": { "type": "string" },
+    "title": { "type": "string" },
+    "n": { "type": "string" },
+    "url": { "type": "string" },
+    "version": { "type": "number" }
+  },
+  "required": ["source", "title", "url"],
+  "rls": { "create": false, "read": false, "update": false, "delete": false }
+}

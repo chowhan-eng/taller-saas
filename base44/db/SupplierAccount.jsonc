@@ -1,0 +1,18 @@
+{
+  "name": "SupplierAccount",
+  "type": "object",
+  "description": "A shop's own login at a parts supplier (dealer prices) and/or its CSV feed URL. Credentials and the session cookie are AES-256-GCM ciphertext per tenant; never returned to the browser.",
+  "properties": {
+    "tenant_id": { "type": "string" },
+    "source": { "type": "string", "enum": ["androgeek", "spainsellers"] },
+    "email_enc": { "type": "string" },
+    "password_enc": { "type": "string" },
+    "cookie_enc": { "type": "string" },
+    "feed_url": { "type": "string", "maxLength": 500, "description": "SpainSellers CSV feed (https only)" },
+    "logged_at": { "type": "string", "format": "date-time" },
+    "checked_at": { "type": "string", "format": "date-time" },
+    "last_error": { "type": "string", "maxLength": 300 }
+  },
+  "required": ["tenant_id", "source"],
+  "rls": { "create": false, "read": false, "update": false, "delete": false }
+}

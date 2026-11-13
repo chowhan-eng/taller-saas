@@ -6,7 +6,7 @@ import { euros, mod } from '../api';
 import { Alert, Modal, canAdmin, cx, useDash, useDebounced } from '../ui';
 import CobrarDialog, { type Cart } from './Cobrar';
 
-type Product = { id: string; name: string; family: string; kind: string; price_eur: number; iva_pct: number };
+type Product = { id: string; name: string; family: string; kind: string; price_eur: number; iva_pct: number; track_stock: boolean; stock: number };
 type ReadyTicket = { id: string; ticket_number: string; brand: string; model: string | null; customer_name: string | null; budget_amount_eur: number | null };
 
 const COLORS = ['bg-sky-200', 'bg-emerald-200', 'bg-amber-200', 'bg-rose-200', 'bg-violet-200', 'bg-teal-200', 'bg-orange-200', 'bg-lime-200'];
@@ -14,13 +14,13 @@ const colorOf = (s: string) => COLORS[[...s].reduce((a, c) => a + c.charCodeAt(0
 
 function ProductEditor({ products, onClose, onChanged }: { products: Product[]; onClose: () => void; onChanged: () => void }) {
   const { ctx } = useDash();
-  const blank = { id: '', name: '', family: '', kind: 'product', price_eur: '', iva_pct: '21' };
+  const blank = { id: '', name: '', family: '', kind: 'product', price_eur: '', iva_pct: '21', track_stock: false, stock: '0' };
   const [f, setF] = useState(blank);
   const [err, setErr] = useState<string | null>(null);
   async function save(e: React.FormEvent) {
     e.preventDefault(); setErr(null);
     try {
-      await mod('tpv', ctx, 'saveProduct', { product: { ...f, id: f.id || undefined, price_eur: Number(String(f.price_eur).replace(',', '.')), iva_pct: Number(f.iva_pct) } });
+      await mod('tpv', ctx, 'saveProduct', { product: { ...f, id: f.id || undefined, price_eur: Number(String(f.price_eur).replace(',', '.')), iva_pct: Number(f.iva_pct), track_stock: f.track_stock, stock: Number(f.stock) || 0 } });
       setF(blank); onChanged();
     } catch (e2) { setErr((e2 as Error).message); }
   }
@@ -32,6 +32,8 @@ function ProductEditor({ products, onClose, onChanged }: { products: Product[]; 
         <label className="text-xs font-semibold">Tipo<select className="tpv-input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="product">Producto</option><option value="service">Servicio</option></select></label>
         <label className="text-xs font-semibold">Precio €<input className="tpv-input" inputMode="decimal" value={f.price_eur} onChange={(e) => setF({ ...f, price_eur: e.target.value })} required /></label>
         <label className="text-xs font-semibold">IVA<select className="tpv-input" value={f.iva_pct} onChange={(e) => setF({ ...f, iva_pct: e.target.value })}>{[21, 10, 4, 0].map((v) => <option key={v}>{v}</option>)}</select></label>
+        <label className="flex items-center gap-1.5 text-xs font-semibold"><input type="checkbox" checked={f.track_stock} onChange={(e) => setF({ ...f, track_stock: e.target.checked })} /> Controlar stock
+          {f.track_stock && <input className="tpv-input !w-16" inputMode="numeric" aria-label="Unidades en stock" value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value.replace(/\D/g, '') })} />}</label>
         <button className="tpv-btn-primary">{f.id ? 'Guardar' : 'Añadir'}</button>
         <datalist id="fams">{[...new Set(products.map((p) => p.family))].map((x) => <option key={x} value={x} />)}</datalist>
       </form>
@@ -40,9 +42,9 @@ function ProductEditor({ products, onClose, onChanged }: { products: Product[]; 
         <table className="w-full text-sm"><tbody>
           {products.map((p) => (
             <tr key={p.id} className="border-b border-slate-200">
-              <td className="px-2 py-1.5 font-medium">{p.name}</td><td className="px-2 text-slate-600">{p.family}</td><td className="px-2 text-right">{euros(p.price_eur)}</td><td className="px-2 text-xs text-slate-500">IVA {p.iva_pct} %</td>
+              <td className="px-2 py-1.5 font-medium">{p.name}</td><td className="px-2 text-slate-600">{p.family}</td><td className="px-2 text-right">{euros(p.price_eur)}</td><td className="px-2 text-xs text-slate-500">IVA {p.iva_pct} %{p.track_stock ? ` · stock ${p.stock}` : ''}</td>
               <td className="px-2 text-right">
-                <button type="button" aria-label="Editar" className="mr-2 text-slate-600 hover:text-slate-900" onClick={() => setF({ id: p.id, name: p.name, family: p.family, kind: p.kind, price_eur: String(p.price_eur), iva_pct: String(p.iva_pct) })}><Pencil size={14} /></button>
+                <button type="button" aria-label="Editar" className="mr-2 text-slate-600 hover:text-slate-900" onClick={() => setF({ id: p.id, name: p.name, family: p.family, kind: p.kind, price_eur: String(p.price_eur), iva_pct: String(p.iva_pct), track_stock: p.track_stock, stock: String(p.stock) })}><Pencil size={14} /></button>
                 <button type="button" aria-label="Borrar" className="text-slate-600 hover:text-red-700" onClick={async () => { await mod('tpv', ctx, 'deleteProduct', { id: p.id }); onChanged(); }}><Trash2 size={14} /></button>
               </td>
             </tr>
@@ -74,8 +76,10 @@ export default function Venta({ reviewUrl, onSold }: { reviewUrl: string | null;
   }, [ctx]);
   useEffect(() => { loadProducts().catch((e) => setErr((e as Error).message)); loadReady(); }, [loadProducts, loadReady]);
 
-  const add = (p: { key: string; name: string; price: number; iva: number; ticketId?: string }) =>
+  const add = (p: { key: string; name: string; price: number; iva: number; ticketId?: string; productId?: string }, stock?: number) =>
     setCart((c) => {
+      const have = c.find((l) => l.key === p.key)?.qty ?? 0;
+      if (stock !== undefined && have + 1 > stock) { setErr(`No queda más stock de «${p.name}».`); return c; }
       const hit = c.find((l) => l.key === p.key);
       return hit ? c.map((l) => (l.key === p.key ? { ...l, qty: l.qty + 1 } : l)) : [...c, { ...p, qty: 1 }];
     });
@@ -113,9 +117,9 @@ export default function Venta({ reviewUrl, onSold }: { reviewUrl: string | null;
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
             {shown.map((p) => (
-              <button key={p.id} type="button" onClick={() => add({ key: `p-${p.id}`, name: p.name, price: p.price_eur, iva: Number(p.iva_pct) })}
+              <button key={p.id} type="button" onClick={() => add({ key: `p-${p.id}`, name: p.name, price: p.price_eur, iva: Number(p.iva_pct), productId: p.id }, p.track_stock ? p.stock : undefined)}
                 className={cx('flex h-24 flex-col justify-between border border-slate-400 p-2 text-left shadow-sm hover:brightness-95 active:translate-y-px', colorOf(p.family))}>
-                <span className="line-clamp-2 text-sm font-semibold leading-tight">{p.name}</span><span className="text-base font-extrabold">{euros(p.price_eur)}</span>
+                <span className="line-clamp-2 text-sm font-semibold leading-tight">{p.name}</span><span className="flex items-baseline justify-between"><span className="text-base font-extrabold">{euros(p.price_eur)}</span>{p.track_stock && <span className={cx('text-[11px] font-semibold', p.stock <= 0 ? 'text-red-700' : p.stock <= 3 ? 'text-amber-800' : 'text-slate-600')}>{p.stock <= 0 ? 'Sin stock' : `${p.stock} ud.`}</span>}</span>
               </button>
             ))}
             {shown.length === 0 && <p className="col-span-full p-3 text-sm text-slate-600">{products.length === 0 ? 'Aún no hay productos. Añádelos con «Productos» o usa el importe libre.' : 'Ningún producto coincide.'}</p>}
@@ -171,7 +175,7 @@ export default function Venta({ reviewUrl, onSold }: { reviewUrl: string | null;
         </div>
       </aside>
 
-      {paying && <CobrarDialog cart={cart} total={total} reviewUrl={reviewUrl} onClose={() => setPaying(false)} onDone={() => { setPaying(false); setCart([]); onSold(); loadReady(); }} />}
+      {paying && <CobrarDialog cart={cart} total={total} reviewUrl={reviewUrl} onClose={() => setPaying(false)} onDone={() => { setPaying(false); setCart([]); onSold(); loadReady(); loadProducts().catch(() => {}); }} />}
       {editing && <ProductEditor products={products} onClose={() => setEditing(false)} onChanged={() => loadProducts().catch(() => {})} />}
     </div>
   );

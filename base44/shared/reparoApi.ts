@@ -13,14 +13,16 @@ import {
   setBudget, updateTicketDetails, updateTicketStatus, type TicketInput,
 } from './tickets.ts';
 import { queueStatusNotice } from './ticketNotify.ts';
+import { saveSupplierAccount, searchParts, supplierStatus, testSupplier, type Fetch } from './parts.ts';
 
 export const REPARO_ACTIONS = [
   'createCustomer', 'getCustomer', 'findCustomerByPhone', 'createTicket', 'getTicket', 'listTickets', 'updateTicket',
   'setStatus', 'setBudget', 'quote', 'applyQuote', 'revealUnlockCode', 'findBySerial', 'shop',
   'team', 'listPartPrices', 'savePartPrice', 'deletePartPrice',
+  'searchParts', 'supplierStatus', 'saveSupplierAccount', 'testSupplier',
 ] as const;
 
-export type ApiCtx = { db: Entities; fc: FieldCrypto; userId?: string; now?: Date };
+export type ApiCtx = { db: Entities; fc: FieldCrypto; userId?: string; now?: Date; fetchFn?: Fetch };
 export type ApiResult = { status: number; body: unknown };
 const ok = (body: unknown): ApiResult => ({ status: 200, body });
 const err = (status: number, error: string): ApiResult => ({ status, body: { error } });
@@ -114,7 +116,9 @@ export async function handleReparo(ctx: ApiCtx, body: Body): Promise<ApiResult> 
         const supplier = String(body.supplier ?? '').trim().slice(0, 60);
         const price = Number(body.priceEur);
         if (!label || !supplier || !(price > 0)) return err(400, 'Indica la pieza, el proveedor y un precio mayor que cero.');
-        const key = label.toLowerCase().replace(/\s+/g, ' ');
+        // A part picked from a live supplier result is remembered by its supplier SKU, so the next search can compare.
+        const sku = String(body.sku ?? '').replace(/[^\w.-]/g, '').slice(0, 40);
+        const key = sku ? `sku:${supplier.toLowerCase()}:${sku}` : label.toLowerCase().replace(/\s+/g, ' ');
         const prev = (await find(db.PartPrice, { tenant_id: tenant.id, part_key: key, supplier }, { limit: 1 }))[0];
         const nowIso = (ctx.now ?? new Date()).toISOString();
         const data = { tenant_id: tenant.id, part_key: key, part_label: label, supplier, price_eur: price, tax_mode: body.taxMode === 'net' ? 'net' : 'gross',
@@ -123,6 +127,24 @@ export async function handleReparo(ctx: ApiCtx, body: Body): Promise<ApiResult> 
         const changed = Math.abs(Number(prev.price_eur) - price) > 0.004;
         const row = await db.PartPrice.update(prev.id, changed ? { ...data, previous_price_eur: prev.price_eur, changed_at: nowIso } : data);
         return ok({ price: row, change: changed ? { from: Number(prev.price_eur), to: price } : null });
+      }
+      case 'searchParts': {
+        // Live lookup at the suppliers for THIS shop (its own dealer login, never another shop's).
+        try { return ok(await searchParts({ db, fc, fetchFn: ctx.fetchFn, now: ctx.now }, tenant.id, String(body.q ?? ''))); }
+        catch (e) { return err(400, (e as Error).message); }
+      }
+      case 'supplierStatus':
+        return ok({ accounts: await supplierStatus({ db, fc }, tenant.id) });
+      case 'saveSupplierAccount': {
+        if (role !== 'owner' && role !== 'admin') return err(403, 'Solo el titular o un administrador pueden cambiar las cuentas de proveedor.');
+        try { await saveSupplierAccount({ db, fc }, tenant.id, { source: String(body.source), email: body.email, password: body.password, feedUrl: body.feedUrl }); }
+        catch (e) { return err(400, (e as Error).message); }
+        return ok({ accounts: await supplierStatus({ db, fc }, tenant.id) });
+      }
+      case 'testSupplier': {
+        if (role !== 'owner' && role !== 'admin') return err(403, 'Solo el titular o un administrador pueden probar la cuenta.');
+        if (body.source !== 'androgeek' && body.source !== 'spainsellers') return err(400, 'Proveedor no válido');
+        return ok(await testSupplier({ db, fc, fetchFn: ctx.fetchFn, now: ctx.now }, tenant.id, body.source));
       }
       case 'deletePartPrice': {
         const row = (await find(db.PartPrice, { id: body.id, tenant_id: tenant.id }, { limit: 1 }))[0];
