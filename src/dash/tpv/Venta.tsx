@@ -6,7 +6,7 @@ import { euros, mod } from '../api';
 import { Alert, Modal, canAdmin, cx, useDash, useDebounced } from '../ui';
 import CobrarDialog, { type Cart } from './Cobrar';
 
-type Product = { id: string; name: string; family: string; kind: string; price_eur: number; iva_pct: number; track_stock: boolean; stock: number };
+type Product = { id: string; name: string; family: string; kind: string; price_eur: number; iva_pct: number; track_stock: boolean; stock: number; low_stock_threshold: number };
 type ReadyTicket = { id: string; ticket_number: string; brand: string; model: string | null; customer_name: string | null; budget_amount_eur: number | null };
 
 const COLORS = ['bg-sky-200', 'bg-emerald-200', 'bg-amber-200', 'bg-rose-200', 'bg-violet-200', 'bg-teal-200', 'bg-orange-200', 'bg-lime-200'];
@@ -14,13 +14,13 @@ const colorOf = (s: string) => COLORS[[...s].reduce((a, c) => a + c.charCodeAt(0
 
 function ProductEditor({ products, onClose, onChanged }: { products: Product[]; onClose: () => void; onChanged: () => void }) {
   const { ctx } = useDash();
-  const blank = { id: '', name: '', family: '', kind: 'product', price_eur: '', iva_pct: '21', track_stock: false, stock: '0' };
+  const blank = { id: '', name: '', family: '', kind: 'product', price_eur: '', iva_pct: '21', track_stock: false, stock: '0', low: '3' };
   const [f, setF] = useState(blank);
   const [err, setErr] = useState<string | null>(null);
   async function save(e: React.FormEvent) {
     e.preventDefault(); setErr(null);
     try {
-      await mod('tpv', ctx, 'saveProduct', { product: { ...f, id: f.id || undefined, price_eur: Number(String(f.price_eur).replace(',', '.')), iva_pct: Number(f.iva_pct), track_stock: f.track_stock, stock: Number(f.stock) || 0 } });
+      await mod('tpv', ctx, 'saveProduct', { product: { ...f, id: f.id || undefined, price_eur: Number(String(f.price_eur).replace(',', '.')), iva_pct: Number(f.iva_pct), track_stock: f.track_stock, stock: Number(f.stock) || 0, low_stock_threshold: Number(f.low) || 0 } });
       setF(blank); onChanged();
     } catch (e2) { setErr((e2 as Error).message); }
   }
@@ -33,7 +33,7 @@ function ProductEditor({ products, onClose, onChanged }: { products: Product[]; 
         <label className="text-xs font-semibold">Precio €<input className="tpv-input" inputMode="decimal" value={f.price_eur} onChange={(e) => setF({ ...f, price_eur: e.target.value })} required /></label>
         <label className="text-xs font-semibold">IVA<select className="tpv-input" value={f.iva_pct} onChange={(e) => setF({ ...f, iva_pct: e.target.value })}>{[21, 10, 4, 0].map((v) => <option key={v}>{v}</option>)}</select></label>
         <label className="flex items-center gap-1.5 text-xs font-semibold"><input type="checkbox" checked={f.track_stock} onChange={(e) => setF({ ...f, track_stock: e.target.checked })} /> Controlar stock
-          {f.track_stock && <input className="tpv-input !w-16" inputMode="numeric" aria-label="Unidades en stock" value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value.replace(/\D/g, '') })} />}</label>
+          {f.track_stock && <><input className="tpv-input !w-16" inputMode="numeric" aria-label="Unidades en stock" value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value.replace(/\D/g, '') })} /><span>aviso ≤</span><input className="tpv-input !w-14" inputMode="numeric" aria-label="Avisar con poco stock a partir de" value={f.low} onChange={(e) => setF({ ...f, low: e.target.value.replace(/\D/g, '') })} /></>}</label>
         <button className="tpv-btn-primary">{f.id ? 'Guardar' : 'Añadir'}</button>
         <datalist id="fams">{[...new Set(products.map((p) => p.family))].map((x) => <option key={x} value={x} />)}</datalist>
       </form>
@@ -44,7 +44,7 @@ function ProductEditor({ products, onClose, onChanged }: { products: Product[]; 
             <tr key={p.id} className="border-b border-slate-200">
               <td className="px-2 py-1.5 font-medium">{p.name}</td><td className="px-2 text-slate-600">{p.family}</td><td className="px-2 text-right">{euros(p.price_eur)}</td><td className="px-2 text-xs text-slate-500">IVA {p.iva_pct} %{p.track_stock ? ` · stock ${p.stock}` : ''}</td>
               <td className="px-2 text-right">
-                <button type="button" aria-label="Editar" className="mr-2 text-slate-600 hover:text-slate-900" onClick={() => setF({ id: p.id, name: p.name, family: p.family, kind: p.kind, price_eur: String(p.price_eur), iva_pct: String(p.iva_pct), track_stock: p.track_stock, stock: String(p.stock) })}><Pencil size={14} /></button>
+                <button type="button" aria-label="Editar" className="mr-2 text-slate-600 hover:text-slate-900" onClick={() => setF({ id: p.id, name: p.name, family: p.family, kind: p.kind, price_eur: String(p.price_eur), iva_pct: String(p.iva_pct), track_stock: p.track_stock, stock: String(p.stock), low: String(p.low_stock_threshold ?? 3) })}><Pencil size={14} /></button>
                 <button type="button" aria-label="Borrar" className="text-slate-600 hover:text-red-700" onClick={async () => { await mod('tpv', ctx, 'deleteProduct', { id: p.id }); onChanged(); }}><Trash2 size={14} /></button>
               </td>
             </tr>

@@ -171,3 +171,34 @@ export async function refundSale(deps: { db: Entities; now?: Date }, tenant: Row
   }
   return { duplicate: false, amount, refund_ref: refundRef, closing_id: session.id, restocked: [...perProduct.entries()].map(([product_id, qty]) => ({ product_id, qty })) };
 }
+
+/**
+ * Manual stock adjustment (stocktake, breakage, goods received). Either `delta` (± units) or `set` (counted
+ * units). Starts tracking the product if it was not tracked. Never below zero. Logged in StockMove.
+ */
+export async function adjustStock(db: Entities, tenant: Row, actorId: string, b: { product_id?: unknown; delta?: unknown; set?: unknown; reason?: unknown }) {
+  const p = typeof b.product_id === 'string' ? await findOne(db.Product, { id: b.product_id, tenant_id: tenant.id }) : null;
+  if (!p) throw new CashError(404, 'Producto no encontrado');
+  const reason = String(b.reason ?? '').trim().slice(0, 200);
+  if (!reason) throw new CashError(400, 'Indica el motivo del ajuste.');
+  const before = p.track_stock === true ? Number(p.stock) || 0 : 0;
+  let after: number;
+  if (b.set !== undefined && b.set !== null && b.set !== '') {
+    after = Math.floor(Number(b.set));
+  } else {
+    const d = Math.floor(Number(b.delta));
+    if (!Number.isFinite(d) || d === 0) throw new CashError(400, 'Indica cuántas unidades entran o salen.');
+    after = before + d;
+  }
+  if (!Number.isFinite(after) || after < 0) throw new CashError(400, 'El stock no puede quedar por debajo de cero.');
+  if (after > 1_000_000) throw new CashError(400, 'Cantidad no válida.');
+  await db.Product.update(p.id, { track_stock: true, stock: after });
+  await db.StockMove.create({ tenant_id: tenant.id, product_id: p.id, product_name: String(p.name).slice(0, 120), delta: after - before, stock_after: after, reason, actor_id: actorId });
+  return { product_id: p.id, stock: after, delta: after - before };
+}
+
+/** Latest manual adjustments of a product (or of the whole shop). */
+export async function stockLog(db: Entities, tenantId: string, productId?: unknown) {
+  const rows = await find(db.StockMove, { tenant_id: tenantId, ...(typeof productId === 'string' && productId ? { product_id: productId } : {}) }, { sort: '-created_date', limit: 50 });
+  return rows.map((r) => ({ id: r.id, created_date: r.created_date, product_id: r.product_id, product_name: r.product_name, delta: r.delta, stock_after: r.stock_after, reason: r.reason }));
+}

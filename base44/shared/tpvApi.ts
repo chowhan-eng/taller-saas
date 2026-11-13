@@ -2,12 +2,12 @@
 // 402) and the counter roles (technicians cannot touch the cash). Free of Base44 runtime imports for tests.
 import { find, findOne, type Entities, type Row } from './db.ts';
 
-const productOut = (p: Row) => ({ id: p.id, name: p.name, family: p.family ?? 'General', kind: p.kind ?? 'product', price_eur: Number(p.price_eur) || 0, iva_pct: p.iva_pct ?? 21, track_stock: p.track_stock === true, stock: Number(p.stock) || 0 });
+const productOut = (p: Row) => ({ id: p.id, name: p.name, family: p.family ?? 'General', kind: p.kind ?? 'product', price_eur: Number(p.price_eur) || 0, iva_pct: p.iva_pct ?? 21, track_stock: p.track_stock === true, stock: Number(p.stock) || 0, low_stock_threshold: p.low_stock_threshold == null ? 3 : Number(p.low_stock_threshold) });
 import { gateModule } from './modules.ts';
 import { CashError, cashMovement, closeSession, openSession, parseMoney, recordSale, round2, sessionSummary } from './cash.ts';
-import { listSales, refundSale, saveSaleLines, validateCart, type RefundInput } from './returns.ts';
+import { adjustStock, listSales, refundSale, stockLog, saveSaleLines, validateCart, type RefundInput } from './returns.ts';
 
-export const TPV_ACTIONS = ['openSession', 'movement', 'recordSale', 'summary', 'close', 'listProducts', 'saveProduct', 'deleteProduct', 'history', 'sales', 'refund'] as const;
+export const TPV_ACTIONS = ['openSession', 'movement', 'recordSale', 'summary', 'close', 'listProducts', 'saveProduct', 'deleteProduct', 'history', 'sales', 'refund', 'adjustStock', 'stockLog'] as const;
 
 export type TpvCtx = { db: Entities; userId?: string; now?: Date };
 // deno-lint-ignore no-explicit-any
@@ -34,6 +34,12 @@ export async function handleTpv(ctx: TpvCtx, body: Body): Promise<{ status: numb
         if (lines.length) await saveSaleLines(ctx.db, gate.tenant.id, sale.sale_ref, (sale.movements[0]?.closing_id as string) ?? null, lines);
         return { status: 200, body: sale };
       }
+      case 'adjustStock': {
+        // Stocktake / breakage / goods received: owner or admin only (counter staff only sell).
+        if (gate.role !== 'owner' && gate.role !== 'admin') return { status: 403, body: { error: 'Solo el titular o un administrador ajustan el stock.' } };
+        return { status: 200, body: await adjustStock(ctx.db, gate.tenant, actor, body) };
+      }
+      case 'stockLog': return { status: 200, body: { moves: await stockLog(ctx.db, gate.tenant.id, body.product_id) } };
       case 'sales': return { status: 200, body: { sales: await listSales(ctx.db, gate.tenant.id, { q: body.q, days: body.days }) } };
       case 'refund': return { status: 200, body: await refundSale(deps, gate.tenant, actor, gate.role, body as RefundInput) };
       case 'summary': return { status: 200, body: await sessionSummary(deps, gate.tenant, body) };
@@ -51,7 +57,8 @@ export async function handleTpv(ctx: TpvCtx, body: Body): Promise<{ status: numb
         if (!name || !(price >= 0)) return { status: 400, body: { error: 'Indica el nombre y un precio válido.' } };
         const data = { tenant_id: gate.tenant.id, name, price_eur: Math.round(price * 100) / 100, family: String(p.family ?? '').trim().slice(0, 40) || 'General',
           kind: p.kind === 'service' ? 'service' : 'product', iva_pct: [0, 4, 10, 21].includes(Number(p.iva_pct)) ? Number(p.iva_pct) : 21, active: true,
-          track_stock: p.track_stock === true, ...(p.track_stock === true ? { stock: Math.max(0, Math.floor(Number(p.stock) || 0)) } : {}) };
+          track_stock: p.track_stock === true, ...(p.track_stock === true ? { stock: Math.max(0, Math.floor(Number(p.stock) || 0)) } : {}),
+          low_stock_threshold: Math.min(1000, Math.max(0, Math.floor(Number(p.low_stock_threshold ?? 3)))) };
         if (typeof p.id === 'string' && p.id) {
           const own = await findOne(ctx.db.Product, { id: p.id, tenant_id: gate.tenant.id });
           if (!own) return { status: 404, body: { error: 'Producto no encontrado' } };

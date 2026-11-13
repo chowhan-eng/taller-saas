@@ -7,14 +7,15 @@ import type { SessionTotals } from '../../../base44/shared/cash.ts';
 import Venta from './Venta';
 import Cierre from './Cierre';
 import Devoluciones from './Devoluciones';
+import Stock, { isLow, type StockProduct } from './Stock';
 import CashdroPanel, { LinkLight, useCashdroLink } from './Cashdro';
 
 export type Summary = {
   session: Record<string, unknown> | null; totals: SessionTotals | null; movements: Record<string, unknown>[];
   previous: { next_day_float: number | null; recharges_balance: number | null; z_number: number | null } | null;
 };
-type TabKey = 'venta' | 'devoluciones' | 'caja' | 'cierre' | 'cashdro';
-const TABS: [TabKey, string][] = [['venta', 'Venta'], ['devoluciones', 'Devoluciones'], ['caja', 'Caja'], ['cierre', 'Cierre de caja'], ['cashdro', 'CashDro']];
+type TabKey = 'venta' | 'devoluciones' | 'stock' | 'caja' | 'cierre' | 'cashdro';
+const TABS: [TabKey, string][] = [['venta', 'Venta'], ['devoluciones', 'Devoluciones'], ['stock', 'Stock'], ['caja', 'Caja'], ['cierre', 'Cierre de caja'], ['cashdro', 'CashDro']];
 const KIND: Record<string, string> = { sale: 'Venta', refund: 'Devolución', cash_in: 'Entrada', cash_out: 'Salida' };
 const METHOD: Record<string, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia', deposit: 'Señal', voucher: 'Vale' };
 
@@ -76,8 +77,12 @@ export default function Tpv() {
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const { link } = useCashdroLink();
+  const [lowCount, setLowCount] = useState(0);
 
-  const load = useCallback(async () => setS(await mod<Summary>('tpv', ctx, 'summary')), [ctx]);
+  const load = useCallback(async () => {
+    setS(await mod<Summary>('tpv', ctx, 'summary'));
+    mod<{ products: StockProduct[] }>('tpv', ctx, 'listProducts').then((r) => setLowCount(r.products.filter(isLow).length)).catch(() => {});
+  }, [ctx]);
   useEffect(() => { load().catch((e) => setErr((e as Error).message)); }, [load]);
   useEffect(() => { mod<{ google_review_url?: string | null }>('whatsapp', ctx, 'settings').then((r) => setReviewUrl(r.google_review_url || null)).catch(() => {}); }, [ctx]);
   const reload = useCallback(() => { load().catch((e) => setErr((e as Error).message)); }, [load]);
@@ -118,10 +123,11 @@ export default function Tpv() {
       ) : (
         <>
           <nav className="flex gap-1 border-b border-tpv-edge bg-slate-300 px-3 pt-2" role="tablist">
-            {TABS.map(([k, label]) => <button key={k} type="button" role="tab" className="tpv-tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>)}
+            {TABS.map(([k, label]) => <button key={k} type="button" role="tab" className="tpv-tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}{k === 'stock' && lowCount > 0 && <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 text-[11px] font-bold text-white" title="Productos con poco stock">{lowCount}</span>}</button>)}
           </nav>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {tab === 'venta' && <Venta reviewUrl={reviewUrl} onSold={reload} />}
+            {tab === 'stock' && <Stock onChanged={reload} />}
             {tab === 'devoluciones' && <Devoluciones onDone={reload} />}
             {tab === 'caja' && s.totals && <CajaPanel s={s} reload={reload} />}
             {tab === 'cierre' && s.totals && <Cierre s={s} reload={reload} onClosed={(r) => { setZ(r); setTab('venta'); reload(); }} />}

@@ -58,6 +58,7 @@ cifrado AES-256-GCM; no hay acceso directo del navegador a las entidades.
 | «Cerrar y enviar informe» por correo | ❌ | no portado |
 | Devoluciones (venta completa, línea o importe) | ✅ | pestaña «Devoluciones»: devuelve stock de `Product`, apunta movimientos NEGATIVOS por forma de pago en la caja abierta y el Cierre los resta. El efectivo se entrega a mano (no hay payout automático por CashDro) |
 | Stock de productos | ✅ | opcional por producto; la venta lo descuenta y la devolución lo repone |
+| Pestaña Stock: ajuste manual y avisos de poco stock | ✅ | entra/sale o fijar recuento (titular/admin, con motivo, nunca por debajo de 0), umbral de aviso por producto, contador en la pestaña y registro de ajustes (`StockMove`). El registro cubre solo ajustes manuales, no cada venta |
 
 ## Verificación
 `tsc` limpio, 136 tests, `deno check` de las 13 funciones y build. **No** se ha probado la UI con datos reales ni con un puente CashDro físico.

@@ -167,3 +167,42 @@ describe('sales list for the Devoluciones screen', () => {
     expect(((await run(db, { action: 'sales', q: 'zzz' })).body as { sales: unknown[] }).sales).toHaveLength(0);
   });
 });
+
+describe('manual stock adjustment', () => {
+  it('owner adds, removes and fixes a count; each one is logged and tracking starts if it was off', async () => {
+    const db = seed();
+    const adj = (extra: Record<string, unknown>, userId = 'owner', tenantId = 'TA') => run(db, { action: 'adjustStock', product_id: 'P1', reason: 'Recuento', ...extra }, userId, tenantId);
+    expect(((await adj({ delta: 10 })).body as { stock: number }).stock).toBe(15);
+    expect(((await adj({ delta: -4 })).body as { stock: number }).stock).toBe(11);
+    expect(((await adj({ set: 7 })).body as { stock: number; delta: number })).toMatchObject({ stock: 7, delta: -4 });
+    expect(stock(db, 'P1')).toBe(7);
+    const p2 = await run(db, { action: 'adjustStock', product_id: 'P2', reason: 'Alta', delta: 3 });
+    expect((p2.body as { stock: number }).stock).toBe(3);
+    expect((db._rows.Product.find((p: Row) => p.id === 'P2') as Row).track_stock).toBe(true);
+    const log = ((await run(db, { action: 'stockLog' })).body as { moves: { delta: number; reason: string }[] }).moves;
+    expect(log).toHaveLength(4);
+    expect(log.map((m) => m.delta).sort((a, b) => a - b)).toEqual([-4, -4, 3, 10]);
+  });
+  it('refuses negative stock, empty reason, zero change, counter staff and other shops', async () => {
+    const db = seed();
+    const adj = (extra: Record<string, unknown>, userId = 'owner', tenantId = 'TA') => run(db, { action: 'adjustStock', product_id: 'P1', reason: 'x', ...extra }, userId, tenantId);
+    expect((await adj({ delta: -6 })).status).toBe(400);
+    expect((await adj({ set: -1 })).status).toBe(400);
+    expect((await adj({ delta: 0 })).status).toBe(400);
+    expect((await adj({ delta: 2, reason: '' })).status).toBe(400);
+    expect((await adj({ delta: 2 }, 'counter')).status).toBe(403);
+    expect((await adj({ delta: 2 }, 'bowner', 'TB')).status).toBe(404);
+    expect(stock(db, 'P1')).toBe(5);
+    expect(db._rows.StockMove ?? []).toHaveLength(0);
+  });
+  it('stock log is per shop and the threshold is saved with the product', async () => {
+    const db = seed();
+    await run(db, { action: 'adjustStock', product_id: 'P1', reason: 'x', delta: 1 });
+    expect(((await run(db, { action: 'stockLog' }, 'bowner', 'TB')).body as { moves: unknown[] }).moves).toHaveLength(0);
+    const saved = (await run(db, { action: 'saveProduct', product: { id: 'P1', name: 'Funda', price_eur: 10, track_stock: true, stock: 5, low_stock_threshold: 8 } })).body as { product: { low_stock_threshold: number } };
+    expect(saved.product.low_stock_threshold).toBe(8);
+    const list = ((await run(db, { action: 'listProducts' })).body as { products: { id: string; low_stock_threshold: number }[] }).products;
+    expect(list.find((p) => p.id === 'P1')?.low_stock_threshold).toBe(8);
+    expect(list.find((p) => p.id === 'P2')?.low_stock_threshold).toBe(3);
+  });
+});
