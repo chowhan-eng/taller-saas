@@ -51,7 +51,7 @@ cifrado AES-256-GCM; no hay acceso directo del navegador a las entidades.
 | Cobro rápido de reparaciones desde Reparo | ✅ | importe pendiente = presupuesto − señal − ya cobrado |
 | Carrito con IVA | ✅ | |
 | Reparto Efectivo / Tarjeta (+ Bizum) | ✅ | |
-| Aviso de reseña de Google | 🟡 | tu pedido habla de un popup de 2 s; la producción actual usa franja + QR + contador. Se muestra tras cobrar, el botón «Continuar» tarda 2 s en activarse. **Confirma cuál quieres** |
+| Aviso de reseña de Google | ✅ | decidido: franja con QR y contador diario (comportamiento actual de producción), visible al terminar el cobro; «Continuar» se activa a los 2 s |
 | Sin botón de retirada en Venta | ✅ | las retiradas están en «Caja» y en el Paso 2 del cierre |
 | Puente CashDro: URL/IP, estado en vivo, fondo objetivo, niveles | ✅ | config en el navegador; la tarjeta no está integrada con datáfono |
 | Cierre: Paso 1 X · Paso 2 Informes · Paso 3 Z | ✅ | 10 casillas, diferencia, fondo de mañana, Disashop independiente, imprimir Z, históricos |
