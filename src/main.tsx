@@ -7,7 +7,6 @@ import Onboarding from '@/pages/Onboarding';
 import Gracias from '@/pages/Gracias';
 import Privacidad from '@/pages/Privacidad';
 import { ForgotPassword, Login, Register, ResetPassword } from '@/pages/Auth';
-import Dashboard from '@/pages/Dashboard';
 
 captureLoginToken();
 
@@ -16,7 +15,6 @@ const Page =
   path === '/onboarding/gracias' ? Gracias :
   path === '/onboarding' ? Onboarding :
   path === '/privacidad' ? Privacidad :
-  path === '/dashboard' ? Dashboard :
   path === '/login' ? Login :
   path === '/register' ? Register :
   path === '/forgot-password' ? ForgotPassword :

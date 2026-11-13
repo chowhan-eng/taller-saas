@@ -6,15 +6,18 @@ import { json, withJsonErrors } from '../../shared/http.ts';
 import { gateModule } from '../../shared/modules.ts';
 import { checkWhatsappQuota } from '../../shared/waQuota.ts';
 import { fieldCrypto } from '../../shared/crypto.ts';
-import { conversationById } from '../../shared/conversations.ts';
+import { conversationById, findConversation } from '../../shared/conversations.ts';
+import { findCustomerByPhone } from '../../shared/customers.ts';
+import { isProActive } from '../../shared/modules.ts';
 import { base44InvokeLLM, makeLlm } from '../../shared/llm.ts';
-import { runReceptionist } from '../../shared/receptionist.ts';
+import { BLOCKED_CATEGORIES, CATEGORIES, runReceptionist } from '../../shared/receptionist.ts';
 import { sendWhatsapp } from '../../shared/waSend.ts';
 import { find, findOne, type Entities } from '../../shared/db.ts';
 
 type Body = {
   tenantId?: string; action?: string; conversationId?: string; phone?: string; text?: string;
   quotedWaMessageId?: string; agentInput?: string; paused?: boolean; mode?: string; limit?: number;
+  settings?: Record<string, unknown>;
   phoneNumberId?: string; displayPhone?: string; accessToken?: string; fallbackTemplate?: string; fallbackLang?: string;
 };
 
@@ -37,7 +40,105 @@ export default withJsonErrors('whatsapp', async (req) => {
         wa_paused: tenant.wa_paused, wa_quality_rating: tenant.wa_quality_rating, google_review_url: tenant.google_review_url,
         review_delay_hours: tenant.review_delay_hours, ai_autoreply_mode: tenant.ai_autoreply_mode,
         wa_fallback_template: tenant.wa_fallback_template, wa_fallback_template_lang: tenant.wa_fallback_template_lang,
+        opening_hours: tenant.opening_hours ?? null, ai_min_confidence: tenant.ai_min_confidence ?? 0.8, ai_daily_cap: tenant.ai_daily_cap ?? 50,
+        ai_persona_prompt: tenant.ai_persona_prompt ?? '', wa_daily_cap: tenant.wa_daily_cap ?? 250,
+        ai_blocked_categories: Array.isArray(tenant.ai_blocked_categories) ? tenant.ai_blocked_categories : [],
+        built_in_blocked_categories: BLOCKED_CATEGORIES, categories: CATEGORIES,
       });
+    case 'saveSettings': {
+      // Receptionist rules, opening hours, caps, review link. Owner/admin only; every field is validated.
+      if (gate.role !== 'owner' && gate.role !== 'admin') return json({ error: 'Solo el titular o un administrador pueden cambiarlo.' }, 403);
+      const patch: Record<string, unknown> = {};
+      const s = (body.settings ?? {}) as Record<string, unknown>;
+      if ('ai_min_confidence' in s) {
+        const v = Number(s.ai_min_confidence);
+        if (!(v >= 0 && v <= 1)) return json({ error: 'La confianza mínima va de 0 a 1.' }, 400);
+        patch.ai_min_confidence = Math.round(v * 100) / 100;
+      }
+      for (const [k, max] of [['ai_daily_cap', 1000], ['wa_daily_cap', 5000]] as const) {
+        if (k in s) {
+          const v = Math.floor(Number(s[k]));
+          if (!(v >= 0 && v <= max)) return json({ error: 'Límite diario no válido.' }, 400);
+          patch[k] = v;
+        }
+      }
+      if ('ai_persona_prompt' in s) patch.ai_persona_prompt = String(s.ai_persona_prompt ?? '').slice(0, 2000);
+      if ('google_review_url' in s) {
+        const u = String(s.google_review_url ?? '').trim();
+        if (u && !/^https:\/\//i.test(u)) return json({ error: 'El enlace de reseñas debe empezar por https://' }, 400);
+        patch.google_review_url = u.slice(0, 500) || null;
+      }
+      if ('ai_blocked_categories' in s) {
+        const list = Array.isArray(s.ai_blocked_categories) ? s.ai_blocked_categories.map(String) : [];
+        patch.ai_blocked_categories = list.filter((c) => (CATEGORIES as readonly string[]).includes(c) && !BLOCKED_CATEGORIES.includes(c));
+      }
+      if ('opening_hours' in s) {
+        const oh = s.opening_hours as Record<string, unknown>;
+        const clean: Record<string, [string, string][]> = {};
+        for (const d of ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']) {
+          const ranges = Array.isArray(oh?.[d]) ? (oh[d] as unknown[]) : [];
+          clean[d] = ranges.slice(0, 3).map((r): [string, string] => (Array.isArray(r) ? [String(r[0]), String(r[1])] : ['', '']))
+            .filter(([a, b]) => /^([01]\d|2[0-3]):[0-5]\d$/.test(a) && /^([01]\d|2[0-3]):[0-5]\d$/.test(b) && a < b);
+        }
+        patch.opening_hours = clean;
+      }
+      await db.Tenant.update(tenant.id, patch);
+      return json({ ok: true });
+    }
+    case 'setPaused': {
+      // Emergency stop: nothing leaves the shop's WhatsApp (manual, automatic or AI) while paused.
+      if (gate.role !== 'owner' && gate.role !== 'admin') return json({ error: 'Solo el titular o un administrador pueden cambiarlo.' }, 403);
+      await db.Tenant.update(tenant.id, { wa_paused: body.paused === true });
+      return json({ ok: true, wa_paused: body.paused === true });
+    }
+    case 'aiLog': {
+      // Decision log of the receptionist: never contains message text, only the decision and why.
+      const fc = fieldCrypto(secrets.get('FIELD_ENCRYPTION_KEY'));
+      const rows = await find(db.AutoReplyLog, { tenant_id: tenant.id }, { sort: '-created_date', limit: Math.min(200, Number(body.limit) || 100) });
+      const names = new Map<string, string | null>();
+      const log = [];
+      for (const l of rows) {
+        const cid = String(l.conversation_id ?? '');
+        if (!names.has(cid)) {
+          const c = cid ? await conversationById(db, tenant.id, cid) : null;
+          names.set(cid, c ? (await fc.decryptOpt(tenant.id, c.customer_name_enc as string | null)) || (await fc.decryptOpt(tenant.id, c.phone_enc as string | null)) : null);
+        }
+        log.push({ id: l.id, created_date: l.created_date, conversation_id: cid, customer: names.get(cid), mode: l.mode_at_time, decision: l.decision,
+          reasons: l.decision_reasons ?? [], category: l.category, confidence: l.confidence });
+      }
+      return json({ log });
+    }
+    case 'openByPhone': {
+      // Deep link from Reparo: a ticket's phone → that customer's conversation (or null if they never wrote).
+      const phone = String(body.phone ?? '').replace(/\D/g, '');
+      if (!phone) return json({ conversationId: null });
+      const fc = fieldCrypto(secrets.get('FIELD_ENCRYPTION_KEY'));
+      const conv = await findConversation(db, fc, tenant.id, phone);
+      return json({ conversationId: conv?.id ?? null });
+    }
+    case 'customerContext': {
+      // Right-hand panel: the customer and (Pro only) their repairs. Tickets stay behind the Pro gate.
+      const fc = fieldCrypto(secrets.get('FIELD_ENCRYPTION_KEY'));
+      const conv = await conversationById(db, tenant.id, body.conversationId);
+      if (!conv) return json({ error: 'Conversación no encontrada' }, 404);
+      const phone = await fc.decryptOpt(tenant.id, conv.phone_enc as string | null);
+      const customer = phone ? await findCustomerByPhone(db, fc, tenant.id, phone) : null;
+      const pro = await isProActive(db, tenant);
+      const tickets = [];
+      if (customer && pro) {
+        for (const t of await find(db.RepairTicket, { tenant_id: tenant.id, customer_id: customer.id }, { sort: '-created_date', limit: 10 })) {
+          tickets.push({ id: t.id, ticket_number: t.ticket_number, status: t.status, device_type: t.device_type, brand: t.brand, model: t.model,
+            budget_status: t.budget_status, budget_amount_eur: t.budget_amount_eur, created_date: t.created_date });
+        }
+      }
+      return json({
+        customer: customer ? { id: customer.id, name: await fc.decrypt(tenant.id, customer.full_name_enc as string), email: customer.email ?? null,
+          wa_opted_out: customer.wa_opted_out === true, wa_service_opt_in: customer.wa_service_opt_in === true, notes: customer.notes ?? null } : null,
+        tickets, pro,
+        ai: { draft: await fc.decryptOpt(tenant.id, conv.ai_draft_enc as string | null), confidence: conv.ai_confidence ?? null,
+          requires_human: conv.ai_requires_human === true, category: conv.ai_category ?? null, processed_at: conv.ai_processed_at ?? null },
+      });
+    }
     case 'listConversations': {
       const fc = fieldCrypto(secrets.get('FIELD_ENCRYPTION_KEY'));
       const rows = await find(db.Conversation, { tenant_id: tenant.id }, { sort: '-last_message_at', limit: Math.min(100, Number(body.limit) || 60) });
@@ -48,6 +149,7 @@ export default withJsonErrors('whatsapp', async (req) => {
           id: c.id, name: await fc.decryptOpt(tenant.id, c.customer_name_enc as string | null), phone: await fc.decryptOpt(tenant.id, c.phone_enc as string | null),
           preview: await fc.decryptOpt(tenant.id, c.last_message_preview_enc as string | null), last_message_at: c.last_message_at,
           unread: c.unread === true, unread_count: Number(c.unread_count) || 0, automation_paused: c.automation_paused === true,
+          window_expires_at: c.service_window_expires_at ?? null, ai_requires_human: c.ai_requires_human === true, has_draft: !!c.ai_draft_enc,
           window_open: !!c.service_window_expires_at && Date.parse(String(c.service_window_expires_at)) > now, status: c.status,
         });
       }
@@ -63,7 +165,9 @@ export default withJsonErrors('whatsapp', async (req) => {
         messages.push({ id: m.id, direction: m.direction, sender_type: m.sender_type, status: m.status, sent_at: m.sent_at ?? m.created_date,
           message_type: m.message_type, reaction_emoji: m.reaction_emoji, body: await fc.decryptOpt(tenant.id, m.body_preview_enc as string | null) });
       }
-      return json({ messages, draft: await fc.decryptOpt(tenant.id, conv.ai_draft_enc as string | null) });
+      return json({ messages, draft: await fc.decryptOpt(tenant.id, conv.ai_draft_enc as string | null),
+        draft_confidence: conv.ai_confidence ?? null, draft_category: conv.ai_category ?? null, draft_requires_human: conv.ai_requires_human === true,
+        window_expires_at: conv.service_window_expires_at ?? null });
     }
     case 'markRead': {
       const conv = await conversationById(db, tenant.id, body.conversationId);

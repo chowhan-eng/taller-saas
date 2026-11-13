@@ -1,0 +1,12 @@
+/* Thermal printing: the printable node is portaled to <body> and shown only when printing. */
+.print-area { display: none; }
+@media print {
+  html, body { background: #fff !important; }
+  body > *:not(.print-area) { display: none !important; }
+  .print-area { display: block !important; color: #000; font: 11px/1.35 'Courier New', ui-monospace, monospace; }
+  .print-area .t-center { text-align: center; }
+  .print-area .t-big { font-size: 16px; }
+  .print-area .t-small { font-size: 9px; }
+  .print-area hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
+  .print-area .label { font-size: 12px; }
+}

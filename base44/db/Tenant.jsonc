@@ -204,6 +204,11 @@
       "type": "string",
       "maxLength": 2000
     },
+    "ai_blocked_categories": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Extra topics the shop never lets the AI answer alone (added to the built-in blocked list; the built-ins cannot be removed)"
+    },
     "google_review_url": {
       "type": "string"
     },

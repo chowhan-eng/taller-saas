@@ -66,13 +66,15 @@ export type Decision = { decision: 'sent' | 'would_send' | 'blocked'; reasons: s
 export function decideAutoReply(p: {
   mode: string; draft: Draft; minConfidence: number; usedToday: number; dailyCap: number;
   automationPaused: boolean; autoreplyDisabled: boolean;
+  /** Extra topics the shop blocks on top of BLOCKED_CATEGORIES (which can never be removed). */
+  extraBlocked?: string[];
 }): Decision {
   if (p.autoreplyDisabled) return { decision: 'blocked', reasons: ['per_conversation_disabled'] };
   if (p.automationPaused) return { decision: 'blocked', reasons: ['automation_paused'] };
   const reasons: string[] = [];
   if (p.draft.confidence < p.minConfidence) reasons.push(`confidence_${p.draft.confidence.toFixed(2)}_below_${p.minConfidence}`);
   if (p.draft.requiresHuman) reasons.push('requires_human');
-  if (BLOCKED_CATEGORIES.includes(p.draft.category)) reasons.push(`category_${p.draft.category}_blocked`);
+  if (BLOCKED_CATEGORIES.includes(p.draft.category) || (p.extraBlocked ?? []).includes(p.draft.category)) reasons.push(`category_${p.draft.category}_blocked`);
   if (p.usedToday >= p.dailyCap) reasons.push('daily_cap_exceeded');
   if (reasons.length) return { decision: 'blocked', reasons };
   return { decision: p.mode === 'live' ? 'sent' : 'would_send', reasons: [] };
@@ -145,6 +147,7 @@ export async function runReceptionist(
   const verdict = decideAutoReply({
     mode, draft, minConfidence: Number(tenant.ai_min_confidence ?? 0.8), usedToday, dailyCap: Number(tenant.ai_daily_cap ?? 50),
     automationPaused: conv.automation_paused === true, autoreplyDisabled: conv.autoreply_disabled === true,
+    extraBlocked: Array.isArray(tenant.ai_blocked_categories) ? (tenant.ai_blocked_categories as unknown[]).map(String) : [],
   });
 
   let reasons = verdict.reasons;

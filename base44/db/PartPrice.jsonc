@@ -1,0 +1,19 @@
+{
+  "name": "PartPrice",
+  "type": "object",
+  "description": "Reparo price memory: last known cost of a spare part at each supplier, with the previous price so a change can be flagged.",
+  "properties": {
+    "tenant_id": { "type": "string" },
+    "part_key": { "type": "string", "description": "normalised brand|model|part (lowercase)" },
+    "part_label": { "type": "string", "maxLength": 200 },
+    "supplier": { "type": "string", "maxLength": 60 },
+    "price_eur": { "type": "number", "minimum": 0 },
+    "previous_price_eur": { "type": "number" },
+    "tax_mode": { "type": "string", "enum": ["gross", "net"], "default": "gross" },
+    "shipping_eur": { "type": "number", "default": 0 },
+    "changed_at": { "type": "string", "format": "date-time" },
+    "url": { "type": "string", "maxLength": 500 }
+  },
+  "required": ["tenant_id", "part_key", "supplier", "price_eur"],
+  "rls": { "create": false, "read": false, "update": false, "delete": false }
+}

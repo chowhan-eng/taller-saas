@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────── Reparo (HelloClient) — tokens copied from the production app ───────── */
+:root {
+  --hc-page: #fcfcfd; --hc-card: #ffffff; --hc-panel: #f4f4f5; --hc-line: #e2e2e3; --hc-hover: #f7f7f8;
+  --hc-ink: rgba(0, 0, 0, 0.87); --hc-muted: #6b7280; --hc-accent: #265b97; --hc-accent-soft: rgba(38, 91, 151, 0.1);
+  --hc-accent-line: rgba(38, 91, 151, 0.4); --hc-line-strong: #d2d2d4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hc-page: #0b0b0c; --hc-card: #141416; --hc-panel: #17171a; --hc-line: #2a2a2e; --hc-hover: #1d1d21;
+    --hc-ink: rgba(255, 255, 255, 0.87); --hc-muted: #a1a1aa; --hc-accent: #8ab4e0; --hc-accent-soft: rgba(138, 180, 224, 0.14);
+    --hc-accent-line: rgba(138, 180, 224, 0.45); --hc-line-strong: #3a3a40;
+  }
+}
+
+html { font-size: 16px; }
+body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--hc-page); color: var(--hc-ink); -webkit-font-smoothing: antialiased; }
+
+@layer components {
+  /* Reparo module: 17px base, 14px tables, hairline cards */
+  .theme-reparo { font-size: 17px; }
+  .hc-card { @apply bg-hc-card border border-hc-line rounded-lg; }
+  .hc-surface table { @apply w-full border-collapse text-[14px]; }
+  .hc-surface th { @apply text-left font-semibold text-hc-muted text-[12px] uppercase tracking-wide px-3 py-2 border-b border-hc-line bg-hc-panel; }
+  .hc-surface td { @apply px-3 py-2.5 border-b border-hc-line align-middle; }
+  .hc-surface tbody tr:hover { background: var(--hc-hover); }
+  .hc-input { @apply w-full rounded-md border border-hc-strong bg-hc-card px-3 py-2 text-[15px] outline-none focus:border-hc-accent focus:ring-2 focus:ring-hc-soft; }
+  .hc-label { @apply block text-[12px] font-semibold text-hc-muted mb-1 uppercase tracking-wide; }
+  .hc-btn { @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-hc-accent px-3.5 py-2 text-[14px] font-semibold text-white hover:opacity-90 disabled:opacity-50; }
+  .hc-btn-ghost { @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-hc-strong bg-hc-card px-3 py-2 text-[14px] font-medium text-hc-ink hover:bg-hc-hover disabled:opacity-50; }
+
+  /* WhatsApp module: dark chat surfaces */
+  .theme-wa { @apply bg-wa-dark text-wa-text; }
+  .wa-input { @apply w-full rounded-lg border border-wa-line bg-wa-raised px-3 py-2 text-sm text-wa-text placeholder:text-wa-muted outline-none focus:border-wa-green; }
+  .wa-btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-wa-green px-3.5 py-2 text-sm font-semibold text-wa-dark hover:brightness-110 disabled:opacity-50; }
+  .wa-btn-ghost { @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-wa-line bg-wa-raised px-3 py-2 text-sm text-wa-text hover:bg-wa-line disabled:opacity-50; }
+
+  /* TPV module: classic desktop window look (Doscar / Informática Torrent) */
+  .theme-tpv { @apply bg-tpv-win text-slate-900; font-size: 15px; }
+  .tpv-window { @apply bg-tpv-win border border-tpv-edge shadow-[inset_1px_1px_0_#fff,inset_-1px_-1px_0_#808080]; }
+  .tpv-btn { @apply inline-flex items-center justify-center gap-1.5 border border-tpv-edge bg-gradient-to-b from-white to-slate-200 px-3 py-2 text-sm font-semibold text-slate-900 hover:from-slate-50 hover:to-slate-300 active:translate-y-px disabled:opacity-50; }
+  .tpv-btn-primary { @apply inline-flex items-center justify-center gap-1.5 border border-slate-700 bg-tpv-slate px-3 py-2 text-sm font-semibold text-white hover:brightness-125 disabled:opacity-50; }
+  .tpv-btn-yellow { @apply inline-flex items-center justify-center gap-1.5 border border-yellow-600 bg-tpv-yellow px-4 py-3 text-base font-bold text-slate-900 hover:brightness-95 disabled:opacity-50; }
+  .tpv-input { @apply w-full border border-tpv-edge bg-white px-2.5 py-1.5 text-sm outline-none focus:border-tpv-blue; }
+  .tpv-tab { @apply border border-b-0 border-tpv-edge bg-slate-200 px-4 py-1.5 text-sm text-slate-700 hover:bg-white; }
+  .tpv-tab[aria-selected='true'] { @apply bg-white font-semibold text-slate-900; }
+}
+
+@media print {
+  body > #root > *:not(.print-root) { display: none !important; }
+}

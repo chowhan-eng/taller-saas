@@ -1,0 +1,17 @@
+{
+  "name": "Product",
+  "type": "object",
+  "description": "TPV catalogue: products and quick services shown in the Cobrar grid (per shop).",
+  "properties": {
+    "tenant_id": { "type": "string" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "family": { "type": "string", "description": "Group tab in the grid (Fundas, Cargadores, Servicios…)" },
+    "kind": { "type": "string", "enum": ["product", "service"], "default": "product" },
+    "price_eur": { "type": "number", "minimum": 0 },
+    "iva_pct": { "type": "number", "default": 21 },
+    "color": { "type": "string" },
+    "active": { "type": "boolean", "default": true }
+  },
+  "required": ["tenant_id", "name", "price_eur"],
+  "rls": { "create": false, "read": false, "update": false, "delete": false }
+}
