@@ -11,6 +11,9 @@ import { ForgotPassword, Login, Register, ResetPassword } from '@/pages/Auth';
 captureLoginToken();
 
 const path = window.location.pathname.replace(/\/+$/, '').replace(/\/index\.html$/, '') || '/';
+// The hosting falls back to this bundle for /dashboard; the real panel is its own page.
+if (path === '/dashboard') location.replace(`/dashboard/index.html${location.search}${location.hash}`);
+
 const Page =
   path === '/onboarding/gracias' ? Gracias :
   path === '/onboarding' ? Onboarding :
@@ -19,7 +22,9 @@ const Page =
   path === '/register' ? Register :
   path === '/forgot-password' ? ForgotPassword :
   path === '/reset-password' ? ResetPassword :
-  path === '/' ? Home : NotFound;
+  path === '/' ? Home : path === '/dashboard' ? Loading : NotFound;
+
+function Loading() { return <main className="wrap" style={{ padding: '48px 16px' }}><p>Abriendo tu panel…</p></main>; }
 
 function NotFound() {
   return (
