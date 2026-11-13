@@ -37,7 +37,8 @@ export function decideQuota(
   const trial = subscription?.status === 'trialing';
   let usedInTrial = 0;
   if (trial) {
-    const start = parseTs((subscription?.trial_start ?? subscription?.created_date) as string | undefined);
+    // Only messages after the trial start count — or after an admin reset of the quota, whichever is later.
+    const start = Math.max(parseTs((subscription?.trial_start ?? subscription?.created_date) as string | undefined), parseTs(subscription?.wa_quota_reset_at as string | undefined));
     usedInTrial = counted.filter((m) => parseTs(m.created_date) >= start).length;
     if (usedInTrial >= TRIAL_WA_CAP) {
       return {

@@ -57,6 +57,20 @@
       "type": "string",
       "format": "date-time"
     },
+    "manual_override": {
+      "type": "boolean",
+      "default": false,
+      "description": "Plan granted by the platform admin (courtesy/comp). stripeWebhook then leaves plan and status alone."
+    },
+    "manual_note": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "wa_quota_reset_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Admin reset of the trial WhatsApp quota: only messages after this moment count"
+    },
     "cancel_at_period_end": {
       "type": "boolean",
       "default": false

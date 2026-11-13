@@ -6,6 +6,7 @@ import { secrets } from 'base44:runtime';
 import { json, withJsonErrors } from '../../shared/http.ts';
 import { mapSubStatus, mapTenantStatus, stripeClient, stripeCrypto, type Stripe } from '../../shared/stripe.ts';
 import { find, type Entities } from '../../shared/db.ts';
+import { recordBillingEvent, type LooseEvent } from '../../shared/billing.ts';
 
 export default withJsonErrors('stripeWebhook', async (req) => {
   const secret = secrets.get('STRIPE_WEBHOOK_SECRET');
@@ -22,6 +23,8 @@ export default withJsonErrors('stripeWebhook', async (req) => {
   }
 
   const db = createClientFromRequest(req).asServiceRole.entities as unknown as Entities;
+  // The admin panel's sales feed. Never allowed to make the webhook fail (Stripe would retry the billing change).
+  await recordBillingEvent(db, event as unknown as LooseEvent).catch((e) => console.error('billing feed', e));
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -88,6 +91,15 @@ async function syncSubscription(db: Entities, sub: Stripe.Subscription, tenantHi
     ...(sub.trial_start ? { trial_used: true } : {}),
   };
   const [existing] = await find(db.Subscription, { tenant_id: tenantId }, { limit: 1 });
+  // A plan granted by hand from the admin panel (courtesy) is not overwritten by Stripe: only the Stripe
+  // bookkeeping fields are kept up to date, plan and status stay as the admin set them.
+  if (existing?.manual_override === true) {
+    await db.Subscription.update(existing.id, {
+      stripe_customer_id: row.stripe_customer_id, stripe_subscription_id: row.stripe_subscription_id, current_period_end: row.current_period_end,
+      trial_start: row.trial_start, trial_end: row.trial_end, cancel_at_period_end: row.cancel_at_period_end, ...(sub.trial_start ? { trial_used: true } : {}),
+    });
+    return;
+  }
   if (existing) await db.Subscription.update(existing.id, row);
   else await db.Subscription.create(row);
 

@@ -1,4 +1,4 @@
-// «Programa Beta Fundadores» card with the live seat counter (public founderSlots function).
+// «Programa Beta Fundadores»: live seat counter (public founderSlots function), the hero badge and the founder section.
 import { useEffect, useState } from 'react';
 
 export type Seats = { cap: number; taken: number; left: number };
@@ -24,21 +24,41 @@ export function FounderTerms() {
   );
 }
 
+/** Pill for the hero: «Quedan X de 10 plazas a 59 €/año» (anchor to the founder section). */
+export function FounderBadge() {
+  const seats = useFounderSeats();
+  const full = seats?.left === 0;
+  return (
+    <a className={`lp-badge ${full ? 'full' : ''}`} href="#fundadores">
+      <span className="dot" aria-hidden />
+      {!seats ? 'Programa Beta Fundadores · 10 plazas a 59 €/año' : full ? 'Plazas de fundador agotadas' : `Quedan ${seats.left} de ${seats.cap} plazas a 59 €/año`}
+      <span aria-hidden>→</span>
+    </a>
+  );
+}
+
 export default function FounderOffer() {
   const seats = useFounderSeats();
   const full = seats?.left === 0;
   return (
-    <section className="soft" id="fundadores">
+    <section className="lp-founder" id="fundadores">
       <div className="wrap">
-        <div className="card founder">
-          <span className="eyebrow">Programa Beta Fundadores · limitado a los 10 primeros talleres</span>
-          <h2>59 € el primer año. Después, 29 €/mes para siempre.</h2>
+        <div>
+          <span className="lp-kicker" style={{ color: '#6ee7b7' }}>Programa Beta Fundadores · solo 10 talleres</span>
+          <h2>59 € el primer año. Después, 29 €/mes de por vida.</h2>
+          <p className="lp-sub" style={{ color: '#cbd5e1' }}>Los primeros talleres que confíen en nosotros se quedan con el precio de fundador para siempre y nos ayudan a afinar el producto.</p>
           <FounderTerms />
-          {seats && <p className="price-sm"><strong>{full ? 'Plazas agotadas' : `Quedan ${seats.left} de ${seats.cap} plazas`}</strong></p>}
           {full
-            ? <p className="small muted">Las 10 plazas de fundador ya están cogidas. Puedes empezar con Starter o Pro.</p>
-            : <a className="btn inline" href="/onboarding/?plan=founder">Quiero ser taller fundador</a>}
-          <p className="small muted">IVA no incluido.</p>
+            ? <p className="small" style={{ color: '#94a3b8' }}>Las 10 plazas de fundador ya están cogidas. Puedes empezar con Starter o Pro.</p>
+            : <a className="lp-btn primary" href="/onboarding/?plan=founder">Quiero ser taller fundador</a>}
+          <p className="small" style={{ color: '#94a3b8', marginTop: 12 }}>IVA no incluido. Sin permanencia.</p>
+        </div>
+        <div className="lp-seats" aria-live="polite">
+          <div className="n">{seats ? seats.left : '·'} <small>de {seats?.cap ?? 10} plazas libres</small></div>
+          <div className="lp-bar" role="img" aria-label={seats ? `${seats.taken} de ${seats.cap} plazas ocupadas` : 'Cargando plazas'}>
+            {Array.from({ length: seats?.cap ?? 10 }, (_, i) => <i key={i} className={seats && i < seats.taken ? 'on' : ''} />)}
+          </div>
+          <p className="small" style={{ margin: 0, color: '#94a3b8' }}>{seats ? (full ? 'Plazas agotadas.' : 'Cada alta confirmada ocupa una plaza. Una plaza reservada en un pago a medias se libera a los 35 minutos.') : 'Cargando…'}</p>
         </div>
       </div>
     </section>

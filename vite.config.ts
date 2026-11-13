@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
           gracias: r('./onboarding/gracias/index.html'),
           privacidad: r('./privacidad/index.html'),
           dashboard: r('./dashboard/index.html'),
+          admin: r('./admin/index.html'),
           login: r('./login/index.html'),
           register: r('./register/index.html'),
           forgot: r('./forgot-password/index.html'),

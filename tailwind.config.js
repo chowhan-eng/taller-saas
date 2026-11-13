@@ -1,6 +1,6 @@
 /** Tailwind is used ONLY by the /dashboard entry (src/dash). The landing keeps its own plain CSS. */
 export default {
-  content: ['./dashboard/index.html', './src/dash/**/*.{ts,tsx}'],
+  content: ['./dashboard/index.html', './admin/index.html', './src/dash/**/*.{ts,tsx}', './src/admin/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {

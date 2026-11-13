@@ -1,0 +1,20 @@
+{
+  "name": "BillingEvent",
+  "type": "object",
+  "description": "Feed of Stripe events (payments, failed payments, subscription changes) written by stripeWebhook / admin sync. Platform-level: read only by adminApi.",
+  "properties": {
+    "stripe_event_id": { "type": "string", "description": "Dedupe key (evt_… or in_…:paid)" },
+    "kind": { "type": "string", "enum": ["checkout_completed", "payment", "payment_failed", "subscription_created", "upgrade", "subscription_updated", "cancelled"] },
+    "tenant_id": { "type": "string" },
+    "plan": { "type": "string" },
+    "amount_cents": { "type": "integer", "default": 0 },
+    "currency": { "type": "string", "default": "eur" },
+    "status": { "type": "string" },
+    "stripe_customer_id": { "type": "string" },
+    "stripe_subscription_id": { "type": "string" },
+    "detail": { "type": "string", "maxLength": 300 },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["stripe_event_id", "kind"],
+  "rls": { "create": false, "read": false, "update": false, "delete": false }
+}

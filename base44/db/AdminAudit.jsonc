@@ -1,0 +1,13 @@
+{
+  "name": "AdminAudit",
+  "type": "object",
+  "description": "Every mutation made from the platform admin panel (who, what, on which shop).",
+  "properties": {
+    "actor_email": { "type": "string" },
+    "action": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "detail": { "type": "string", "maxLength": 300 }
+  },
+  "required": ["actor_email", "action"],
+  "rls": { "create": false, "read": false, "update": false, "delete": false }
+}

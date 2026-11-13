@@ -8,10 +8,9 @@ const PLAN_EUR = 39;
 
 function Slider(p: { id: string; label: string; min: number; max: number; step: number; value: number; set: (n: number) => void; suffix?: string }) {
   return (
-    <div>
+    <div className="field">
       <label htmlFor={p.id}>{p.label}: <strong>{p.value.toLocaleString('es-ES')}{p.suffix ?? ''}</strong></label>
-      <input id={p.id} className="range" type="range" min={p.min} max={p.max} step={p.step} value={p.value}
-             onChange={(e) => p.set(Number(e.target.value))} />
+      <input id={p.id} type="range" min={p.min} max={p.max} step={p.step} value={p.value} onChange={(e) => p.set(Number(e.target.value))} />
     </div>
   );
 }
@@ -27,25 +26,30 @@ export default function RoiCalculator() {
   const money = Math.round(hoursSaved * hour);
   const reviews = Math.round(repairs * ASK_RATE * REVIEW_RATE);
   const roi = money / PLAN_EUR;
+  const n1 = (v: number) => v.toLocaleString('es-ES', { maximumFractionDigits: 1 });
 
   return (
-    <div className="card">
-      <div className="grid2">
+    <div className="lp-roi">
+      <div className="lp-card">
         <Slider id="r1" label="Reparaciones al mes" min={20} max={600} step={10} value={repairs} set={setRepairs} />
         <Slider id="r2" label="Llamadas «¿ya está?» por reparación" min={0} max={4} step={0.5} value={callsPer} set={setCallsPer} />
         <Slider id="r3" label="Minutos perdidos por llamada" min={1} max={10} step={1} value={mins} set={setMins} />
         <Slider id="r4" label="Valor de tu hora" min={10} max={60} step={5} value={hour} set={setHour} suffix=" €" />
+        <p className="small muted" style={{ margin: 0 }}>
+          Estimación con estos supuestos: el aviso evita el {AVOID_RATE * 100} % de las llamadas, el {ASK_RATE * 100} % acepta que le pidan
+          reseña y el {REVIEW_RATE * 100} % la deja. Cada taller es distinto.
+        </p>
       </div>
-      <p className="roi-out" aria-live="polite">
-        Con <strong>{repairs}</strong> reparaciones te ahorras unas <strong>{callsAvoided}</strong> llamadas y{' '}
-        <strong>{hoursSaved.toLocaleString('es-ES', { maximumFractionDigits: 1 })} h al mes</strong> (≈ <strong>{money} €</strong>).
-        Podrías sumar unas <strong>{reviews}</strong> reseñas nuevas al mes. Starter cuesta {PLAN_EUR} € → retorno ≈{' '}
-        <strong>{roi.toLocaleString('es-ES', { maximumFractionDigits: 1 })}×</strong>.
-      </p>
-      <p className="small muted">
-        Estimaciones con estos supuestos: el aviso evita el {AVOID_RATE * 100} % de las llamadas, el {ASK_RATE * 100} % acepta que le pidan
-        reseña y el {REVIEW_RATE * 100} % la deja. Cada taller es distinto.
-      </p>
+      <div className="lp-out" aria-live="polite">
+        <div className="big">{n1(hoursSaved)} h <small>al mes que recuperas</small></div>
+        <p style={{ margin: '6px 0 0', position: 'relative', zIndex: 1 }}>≈ <strong style={{ color: '#fff' }}>{money.toLocaleString('es-ES')} €</strong> de tu tiempo, sin contar las ventas que se pierden por no contestar.</p>
+        <dl>
+          <div><dt>Llamadas evitadas</dt><dd>{callsAvoided}</dd></div>
+          <div><dt>Reseñas de Google extra</dt><dd>+{reviews}/mes</dd></div>
+          <div><dt>Coste de Starter</dt><dd>{PLAN_EUR} €/mes</dd></div>
+          <div><dt>Retorno estimado</dt><dd className="roi">{n1(roi)}×</dd></div>
+        </dl>
+      </div>
     </div>
   );
 }
