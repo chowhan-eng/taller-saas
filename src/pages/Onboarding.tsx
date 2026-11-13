@@ -27,7 +27,8 @@ export default function Onboarding() {
   const [dpa, setDpa] = useState(false);
   // step 3
   const [tenantId, setTenantId] = useState<string | null>(null);
-  const [plan, setPlan] = useState<Plan>('starter');
+  const [plan, setPlan] = useState<Plan>('pro'); // the PAID plan to check out (the free trial has its own button)
+  const [ent, setEnt] = useState<{ trial: { state: 'none' | 'trial' | 'expired'; days_left: number | null }; trial_used: boolean } | null>(null);
   const [commit, setCommit] = useState(false);
   const seats = useFounderSeats();
   const founderFull = seats?.left === 0;
@@ -47,7 +48,6 @@ export default function Onboarding() {
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    if (q.get('plan') === 'pro') setPlan('pro');
     if (q.get('plan') === 'founder') setPlan('founder');
     guard(async () => {
       if (isSignedIn()) await routeLoggedIn();
@@ -63,6 +63,8 @@ export default function Onboarding() {
     if (!r.ok) throw new Error(r.data.error ?? `onboardingState ${r.status}`);
     if (r.data.tenantId) {
       setTenantId(r.data.tenantId);
+      const e = await callFn<NonNullable<typeof ent>>('entitlements', { tenantId: r.data.tenantId });
+      if (e.ok) setEnt(e.data as NonNullable<typeof ent>);
       setStep(3);
     } else {
       setStep(2);
@@ -99,6 +101,16 @@ export default function Onboarding() {
     if (!r.ok || !r.data.tenantId) return setErr(r.data.error ?? 'No hemos podido crear tu taller. Inténtalo de nuevo.');
     setTenantId(r.data.tenantId);
     setStep(3);
+  }
+
+  /** Cardless 14-day Starter trial: no Stripe. On success the shop goes straight into the dashboard. */
+  async function startTrial() {
+    setErr(null); setBusy(true);
+    const r = await callFn<{ ok?: boolean }>('onboardingApi', { action: 'activateFreeTrial', tenantId });
+    if (r.ok) { window.location.href = '/dashboard/index.html'; return; }
+    setBusy(false);
+    if (r.status === 401) return setStep(1);
+    setErr(r.data.error ?? 'No hemos podido activar la prueba. Inténtalo de nuevo.');
   }
 
   async function checkout() {
@@ -171,8 +183,29 @@ export default function Onboarding() {
 
       {step === 3 && (
         <section className="card" style={{ padding: 24 }}>
-          <h2>Elige tu plan</h2>
-          <p className="small"><a href="/dashboard/">¿Solo quieres entrar a tu panel? Ir al panel →</a></p>
+          <h2>Empieza ahora</h2>
+          {ent?.trial.state === 'trial' && (
+            <div className="alert ok" role="status">
+              Tu prueba gratuita está activa: te {ent.trial.days_left === 1 ? 'queda 1 día' : `quedan ${ent.trial.days_left} días`}. <a href="/dashboard/index.html"><strong>Ir a mi panel →</strong></a>
+            </div>
+          )}
+          {ent?.trial.state === 'expired' && <div className="alert err" role="alert">Tu prueba de 14 días ha terminado y el envío de WhatsApp está bloqueado. Elige un plan para seguir.</div>}
+
+          {!ent?.trial_used && (
+            <div className="card founder" style={{ padding: 18, marginBottom: 18 }}>
+              <h3 style={{ marginTop: 0 }}>14 días gratis · Sin tarjeta de crédito</h3>
+              <ul className="ticks small">
+                <li><strong>Empieza en 2 minutos</strong>: sin Stripe y sin datos de pago.</li>
+                <li>Plan Starter completo: avisos de WhatsApp, recepcionista IA y reseñas de Google.</li>
+                <li>Hasta 50 mensajes de WhatsApp durante la prueba. Al terminar los 14 días eliges un plan o se pausan los envíos.</li>
+              </ul>
+              {err && <div className="alert err" role="alert">{err}</div>}
+              <button className="btn" onClick={guard(startTrial)} disabled={busy || !tenantId}>{busy ? 'Activando…' : 'Empezar prueba gratis de 14 días (sin tarjeta)'}</button>
+            </div>
+          )}
+
+          <h3>{ent?.trial_used ? 'Elige tu plan' : '¿Prefieres pagar ya?'}</h3>
+          <p className="small muted">Pago seguro con Stripe (tarjeta o SEPA). Sin permanencia y con garantía de devolución de 30 días.</p>
           <div className="choices" style={{ gridTemplateColumns: '1fr' }}>
             <label className={`choice founder ${plan === 'founder' ? 'on' : ''}`} style={founderFull ? { opacity: 0.55 } : undefined}>
               <input type="radio" name="plan" checked={plan === 'founder'} disabled={founderFull} onChange={() => setPlan('founder')} />
@@ -181,11 +214,6 @@ export default function Onboarding() {
                 Limitado a los 10 primeros talleres{seats ? ` · ${founderFull ? 'plazas agotadas' : `quedan ${seats.left} de ${seats.cap}`}` : ''}
               </span>
               <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Pro completo. Desde el año 2, 29 €/mes de por vida (en lugar de 79 €/mes). Cancelas cuando quieras.</span>
-            </label>
-            <label className={`choice ${plan === 'starter' ? 'on' : ''}`}>
-              <input type="radio" name="plan" checked={plan === 'starter'} onChange={() => setPlan('starter')} />
-              Starter · <strong>14 días gratis</strong>, después 39 €/mes
-              <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>Solo WhatsApp: avisos automáticos, recepcionista IA y reseñas de Google.</span>
             </label>
             <label className={`choice ${plan === 'pro' ? 'on' : ''}`}>
               <input type="radio" name="plan" checked={plan === 'pro'} onChange={() => setPlan('pro')} />
@@ -199,14 +227,9 @@ export default function Onboarding() {
               <label className="check"><input type="checkbox" checked={commit} onChange={(e) => setCommit(e.target.checked)} /><span>{FOUNDER_COMMITMENT}</span></label>
             </>
           )}
-          <ul className="ticks small">
-            {plan === 'starter' && <li><strong>14 Días de Prueba Gratis</strong>: pedimos la tarjeta ahora y no se cobra nada si cancelas antes del día 15. Durante la prueba: hasta 50 mensajes de WhatsApp.</li>}
-            <li>Sin permanencia</li>
-            <li>Garantía de devolución de 30 días</li>
-            <li>Pago seguro con Stripe (tarjeta o SEPA)</li>
-          </ul>
-          {err && <div className="alert err" role="alert">{err}</div>}
-          <button className="btn" onClick={guard(checkout)} disabled={busy || !tenantId || (plan === 'founder' && (!commit || founderFull))}>{busy ? 'Abriendo pago…' : plan === 'starter' ? 'Empezar mis 14 días gratis' : plan === 'founder' ? 'Reservar mi plaza de fundador · 59 €' : 'Ir al pago seguro'}</button>
+          {ent?.trial_used && err && <div className="alert err" role="alert">{err}</div>}
+          <button className={ent?.trial_used ? 'btn' : 'btn secondary'} onClick={guard(checkout)} disabled={busy || !tenantId || (plan === 'founder' && (!commit || founderFull))}>{busy ? 'Abriendo pago…' : plan === 'founder' ? 'Reservar mi plaza de fundador · 59 €' : 'Ir al pago seguro · Pro 79 €/mes'}</button>
+          <p className="small" style={{ marginTop: 14 }}><a href="/dashboard/index.html">¿Solo quieres entrar a tu panel? Ir al panel →</a></p>
         </section>
       )}
     </main>

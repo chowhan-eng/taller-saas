@@ -58,6 +58,11 @@ export default function WhatsApp() {
       {settings.wa_paused && (
         <div className="flex items-center gap-2 bg-red-600 px-4 py-1.5 text-sm font-semibold text-white" role="alert"><OctagonAlert size={16} /> Los envíos están pausados: no sale ningún mensaje. Reanúdalos en Ajustes.</div>
       )}
+      {quota && !quota.ok && (quota.reason === 'trial_expired' || quota.reason === 'no_plan' || quota.reason === 'trial_cap') && (
+        <div className="flex flex-wrap items-center gap-3 bg-amber-600 px-4 py-1.5 text-sm font-semibold text-white" role="alert">
+          <span>{quota.error}</span><a className="rounded bg-white px-3 py-0.5 text-amber-800" href="/onboarding/">Elegir plan</a>
+        </div>
+      )}
       {err && <div className="bg-red-900/60 px-4 py-1.5 text-sm text-red-100" role="alert">{err}</div>}
       <div className="min-h-0 flex-1">
         {view === 'inbox' && <Inbox openPhone={nav.phone} templateName={settings.wa_fallback_template} />}

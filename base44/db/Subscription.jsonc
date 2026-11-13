@@ -57,6 +57,11 @@
       "type": "string",
       "format": "date-time"
     },
+    "founder_hold_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "A founder checkout is in progress: holds a seat for 35 min without touching plan/status (keeps a running free trial intact)"
+    },
     "manual_override": {
       "type": "boolean",
       "default": false,

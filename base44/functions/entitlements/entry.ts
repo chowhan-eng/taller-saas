@@ -4,6 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk';
 import { json, withJsonErrors } from '../../shared/http.ts';
 import { entitlementsFor } from '../../shared/modules.ts';
 import { membership } from '../../shared/tenancy.ts';
+import { trialState } from '../../shared/trial.ts';
 import { find, type Entities } from '../../shared/db.ts';
 
 export default withJsonErrors('entitlements', async (req) => {
@@ -17,5 +18,10 @@ export default withJsonErrors('entitlements', async (req) => {
   if (!member) return json({ error: 'No tienes acceso a este taller.' }, 403);
   const [tenant] = await find(db.Tenant, { id: tenantId }, { limit: 1 });
   if (!tenant) return json({ error: 'Taller no encontrado' }, 404);
-  return json({ plan: tenant.plan, status: tenant.status, role: member.role, modules: entitlementsFor(tenant.plan, tenant.status) });
+  const [sub] = await find(db.Subscription, { tenant_id: tenantId }, { limit: 1 });
+  return json({
+    plan: tenant.plan, status: tenant.status, role: member.role, modules: entitlementsFor(tenant.plan, tenant.status),
+    // Where the shop stands with its free trial (days left / expired) so the app can show the upgrade prompt.
+    trial: trialState(sub ?? null), subscription_status: (sub?.status as string) ?? null, trial_used: sub?.trial_used === true,
+  });
 });

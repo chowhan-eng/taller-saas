@@ -208,8 +208,9 @@ export default withJsonErrors('whatsapp', async (req) => {
         kind: 'manual', senderType: 'agent', quotedWaMessageId: body.quotedWaMessageId,
       });
       if (r.ok) return json(r);
-      const status = r.reason === 'trial_cap' || r.reason === 'daily_cap' ? 429 : r.reason === 'opted_out' ? 409 : 400;
-      return json(r, status);
+      // 402 = the shop has to pick a plan (trial over / no plan yet); the message says where to do it.
+      const status = r.reason === 'trial_expired' || r.reason === 'no_plan' ? 402 : r.reason === 'trial_cap' || r.reason === 'daily_cap' ? 429 : r.reason === 'opted_out' ? 409 : 400;
+      return json({ ...r, upgrade: r.reason === 'trial_expired' || r.reason === 'no_plan' || r.reason === 'trial_cap' }, status);
     }
     case 'draft': {
       // AI receptionist draft for the agent to review (never sent from here).

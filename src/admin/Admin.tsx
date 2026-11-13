@@ -6,13 +6,13 @@ import { callFn, isSignedIn, redirectToLogin } from '@/lib/base44';
 import { Alert, Modal, cx } from '../dash/ui';
 
 type Overview = {
-  paying: { founder: number; starter: number; pro: number; total: number }; trials: number; past_due: number; courtesy: number;
+  paying: { founder: number; starter: number; pro: number; total: number }; trials: number; expired_trials: number; past_due: number; courtesy: number;
   mrr_eur: number; arr_eur: number; collected_total_eur: number; collected_30d_eur: number;
   founder: { cap: number; taken: number; left: number; holds: { tenant_id: string; minutes_left: number }[]; hold_minutes: number };
 };
 type Tenant = {
   id: string; trade_name: string; slug: string; owner_email: string | null; created_date: string; plan: string; tenant_status: string; sub_status: string | null;
-  trial: boolean; manual_override: boolean; manual_note: string | null; stripe_customer_id: string | null; stripe_subscription_id: string | null; current_period_end: string | null;
+  trial: boolean; trial_expired: boolean; days_left: number | null; manual_override: boolean; manual_note: string | null; stripe_customer_id: string | null; stripe_subscription_id: string | null; current_period_end: string | null;
   wa_sent: number; wa_cap: number | null; wa_reset_at: string | null;
 };
 type Ev = { id: string; kind: string; occurred_at: string; amount_eur: number; currency: string; status: string | null; plan: string | null; shop: string | null; detail: string | null; stripe_customer_id: string | null };
@@ -44,7 +44,7 @@ function Kpi({ label, value, sub, Icon, tone = 'text-white' }: { label: string; 
 }
 
 function StatusBadge({ t }: { t: Tenant }) {
-  const s = t.tenant_status === 'suspended' ? ['Suspendido', 'bg-red-500/15 text-red-300'] : t.trial ? ['Prueba', 'bg-sky-500/15 text-sky-300'] : t.sub_status === 'active' ? ['Activa', 'bg-emerald-500/15 text-emerald-300']
+  const s = t.tenant_status === 'suspended' ? ['Suspendido', 'bg-red-500/15 text-red-300'] : t.trial_expired ? ['Prueba vencida', 'bg-amber-500/15 text-amber-300'] : t.trial ? [t.days_left != null ? `Prueba · ${t.days_left} d` : 'Prueba', 'bg-sky-500/15 text-sky-300'] : t.sub_status === 'active' ? ['Activa', 'bg-emerald-500/15 text-emerald-300']
     : t.sub_status === 'past_due' ? ['Impago', 'bg-amber-500/15 text-amber-300'] : [t.sub_status ?? t.tenant_status, 'bg-slate-500/20 text-slate-300'];
   return <span className={cx('rounded px-2 py-0.5 text-xs font-semibold', s[1])}>{s[0]}</span>;
 }
@@ -127,7 +127,7 @@ export default function Admin() {
           <Kpi label="MRR" value={eur(o.mrr_eur)} sub={`ARR ≈ ${eur(o.arr_eur)} · solo talleres que pagan`} Icon={CircleDollarSign} tone="text-emerald-300" />
           <Kpi label="Cobrado en total" value={eur(o.collected_total_eur)} sub={`${eur(o.collected_30d_eur)} en los últimos 30 días`} Icon={Activity} />
           <Kpi label="Talleres de pago" value={String(o.paying.total)} sub={`${o.paying.founder} Fundador · ${o.paying.starter} Starter · ${o.paying.pro} Pro`} Icon={Users} />
-          <Kpi label="Pruebas gratis" value={String(o.trials)} sub={`${o.past_due} en impago · ${o.courtesy} de cortesía`} Icon={Gift} tone={o.past_due ? 'text-amber-300' : 'text-white'} />
+          <Kpi label="Pruebas gratis" value={String(o.trials)} sub={`${o.expired_trials} vencidas · ${o.past_due} en impago · ${o.courtesy} de cortesía`} Icon={Gift} tone={o.past_due ? 'text-amber-300' : 'text-white'} />
         </section>
 
         <section className="rounded-xl border border-white/10 bg-white/[0.04] p-4">

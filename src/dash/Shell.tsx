@@ -41,6 +41,7 @@ export default function Shell() {
   const [ctx, setCtx] = useState<Ctx | null>(null);
   const [modules, setModules] = useState<string[]>([]);
   const [shop, setShop] = useState('');
+  const [trial, setTrial] = useState<{ state: 'none' | 'trial' | 'expired'; days_left: number | null } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [nav, setNav] = useState<Nav>(() => {
     const h = location.hash.slice(1).split('?')[0];
@@ -54,10 +55,11 @@ export default function Shell() {
       if (s.status === 401) { redirectToLogin(); return; }
       if (!s.ok) throw new Error(s.data.error);
       if (!s.data.tenantId) { location.href = '/onboarding/'; return; }
-      const e = await callFn<{ plan: string; status: string; role: string; modules: string[] }>('entitlements', { tenantId: s.data.tenantId });
+      const e = await callFn<{ plan: string; status: string; role: string; modules: string[]; trial?: { state: 'none' | 'trial' | 'expired'; days_left: number | null } }>('entitlements', { tenantId: s.data.tenantId });
       if (!e.ok) throw new Error(e.data.error);
       setCtx({ tenantId: s.data.tenantId, role: String(e.data.role), plan: String(e.data.plan) });
       setModules(e.data.modules ?? []);
+      setTrial(e.data.trial ?? null);
       const w = await callFn<{ trade_name?: string }>('whatsapp', { tenantId: s.data.tenantId, action: 'settings' });
       if (w.ok) setShop(String(w.data.trade_name ?? ''));
     })().catch(() => setErr('No hemos podido cargar tu taller. Revisa la conexión y recarga la página.'));
@@ -95,7 +97,21 @@ export default function Shell() {
             {ctx.plan === 'founder' ? 'Fundador' : isPro ? 'Pro' : 'Starter'}
           </div>
         </nav>
-        <main className="min-w-0 flex-1 overflow-hidden">{body}</main>
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {trial?.state === 'trial' && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-emerald-700 px-4 py-1.5 text-sm text-white" role="status">
+              <span>Prueba gratuita: te {trial.days_left === 1 ? 'queda 1 día' : `quedan ${trial.days_left} días`} · hasta 50 mensajes de WhatsApp.</span>
+              <a className="font-semibold underline" href="/onboarding/">Elegir plan</a>
+            </div>
+          )}
+          {trial?.state === 'expired' && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-red-700 px-4 py-2 text-sm font-medium text-white" role="alert">
+              <span>Tu prueba gratuita de 14 días ha terminado: el envío de WhatsApp está bloqueado hasta que elijas un plan.</span>
+              <a className="rounded bg-white px-3 py-1 font-semibold text-red-800" href="/onboarding/">Elegir plan</a>
+            </div>
+          )}
+          <div className="min-h-0 flex-1 overflow-hidden">{body}</div>
+        </main>
       </div>
     </DashContext.Provider>
   );

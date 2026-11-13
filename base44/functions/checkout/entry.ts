@@ -36,8 +36,10 @@ export default withJsonErrors('checkout', async (req) => {
   if (plan === 'founder') {
     if ((await founderSeats(db, tenant.id)).left <= 0) return json({ error: 'Las 10 plazas de Fundador ya están cogidas.' }, 409);
     await db.Tenant.update(tenant.id, { founder_commitment_at: new Date().toISOString() });
-    // Reserve the seat while the shop pays (counted for RESERVATION_MS).
-    if (sub) await db.Subscription.update(sub.id, { plan: 'founder', status: sub.status === 'active' ? sub.status : 'incomplete' });
+    // Reserve the seat while the shop pays (counted for RESERVATION_MS). A shop with a running free trial keeps it
+    // untouched (plan/status stay): the seat is held with founder_hold_at instead.
+    const stamp = new Date().toISOString();
+    if (sub) await db.Subscription.update(sub.id, sub.status === 'trialing' ? { founder_hold_at: stamp } : { plan: 'founder', status: sub.status === 'active' ? sub.status : 'incomplete', founder_hold_at: stamp });
   }
   let customerId = (sub?.stripe_customer_id as string | undefined) ?? null;
   if (!customerId) {
@@ -48,7 +50,8 @@ export default withJsonErrors('checkout', async (req) => {
       metadata: { tenant_id: tenant.id, nif: (tenant.nif as string | null) ?? '' },
     });
     customerId = customer.id;
-    if (sub) await db.Subscription.update(sub.id, { plan, stripe_customer_id: customerId, status: 'incomplete' });
+    // Starting checkout must not end a running free trial: only the Stripe webhook changes plan/status.
+    if (sub) await db.Subscription.update(sub.id, sub.status === 'trialing' ? { stripe_customer_id: customerId } : { plan, stripe_customer_id: customerId, status: 'incomplete' });
     else await db.Subscription.create({ tenant_id: tenant.id, plan, stripe_customer_id: customerId, status: 'incomplete' });
   }
 

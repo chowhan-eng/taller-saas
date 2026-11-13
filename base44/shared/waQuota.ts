@@ -14,7 +14,7 @@ const COUNTED = new Set(['queued', 'sent', 'delivered', 'read', 'failed']);
 
 export type QuotaDecision =
   | { ok: true; trial: boolean; usedInTrial: number; remainingInTrial: number | null }
-  | { ok: false; reason: 'paused' | 'trial_cap' | 'daily_cap'; error: string };
+  | { ok: false; reason: 'paused' | 'trial_cap' | 'daily_cap' | 'trial_expired' | 'no_plan'; error: string };
 
 export function madridDayStart(now: Date): number {
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
@@ -33,6 +33,19 @@ export function decideQuota(
 ): QuotaDecision {
   if (tenant.wa_paused === true) return { ok: false, reason: 'paused', error: 'Los envíos de WhatsApp están pausados para este taller.' };
   const counted = outbound.filter((m) => COUNTED.has(String(m.status)));
+
+  // No plan yet (never started a trial / abandoned checkout / cancelled / unpaid): nothing is sent.
+  if (subscription && ['incomplete', 'cancelled', 'unpaid'].includes(String(subscription.status))) {
+    return { ok: false, reason: 'no_plan', error: 'Empieza tu prueba gratuita de 14 días o elige un plan desde /onboarding para poder enviar mensajes de WhatsApp.' };
+  }
+  // A trial started without a card ends with the clock: after trial_end, and unless the shop subscribed through
+  // Stripe, outbound WhatsApp is refused until it picks a plan.
+  if (subscription?.status === 'trialing' && !subscription.stripe_subscription_id) {
+    const end = parseTs(subscription.trial_end as string | undefined);
+    if (end && end <= now.getTime()) {
+      return { ok: false, reason: 'trial_expired', error: 'Tu prueba gratuita de 14 días ha terminado. Elige un plan desde /dashboard o /onboarding para seguir enviando mensajes de WhatsApp.' };
+    }
+  }
 
   const trial = subscription?.status === 'trialing';
   let usedInTrial = 0;

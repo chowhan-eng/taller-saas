@@ -2,9 +2,10 @@
 // overrides. Free of Base44 runtime imports so every rule is unit-tested. The ONLY gate is isPlatformAdmin():
 // a shop owner — whatever their tenant role — is never an admin.
 import { find, findOne, type Entities, type Row } from './db.ts';
-import { countFounderSeats, FOUNDER_CAP, RESERVATION_MS } from './founder.ts';
+import { activeHolds, countFounderSeats, FOUNDER_CAP, RESERVATION_MS } from './founder.ts';
 import { parseTs } from './http.ts';
 import { TRIAL_WA_CAP } from './waQuota.ts';
+import { trialState } from './trial.ts';
 
 /** The platform owner. More addresses can be added with the PLATFORM_ADMIN_EMAILS secret (comma separated). */
 export const DEFAULT_ADMIN_EMAILS = ['pcmaticatorrent@gmail.com'];
@@ -30,7 +31,8 @@ export async function overview(db: Entities, now = new Date()) {
   const real = subs.filter((s) => s.manual_override !== true);
   const byPlan = (plan: string) => real.filter((s) => s.plan === plan && PAYING.includes(String(s.status)));
   const paying = { founder: byPlan('founder').length, starter: byPlan('starter').length, pro: byPlan('pro').length };
-  const trials = real.filter((s) => s.status === 'trialing').length;
+  const trials = real.filter((s) => s.status === 'trialing' && trialState(s, now).state !== 'expired').length;
+  const expiredTrials = real.filter((s) => trialState(s, now).state === 'expired').length;
   const pastDue = real.filter((s) => s.status === 'past_due').length;
   const courtesy = subs.filter((s) => s.manual_override === true).length;
   // MRR counts only subscriptions that are really paying (status active); past_due is at risk, courtesy is free.
@@ -38,19 +40,17 @@ export async function overview(db: Entities, now = new Date()) {
   const events = await find(db.BillingEvent, { kind: 'payment' });
   const cutoff = now.getTime() - 30 * 864e5;
   const cash = (list: Row[]) => r2(list.filter((e) => String(e.currency ?? 'eur') === 'eur').reduce((s, e) => s + (Number(e.amount_cents) || 0), 0) / 100);
-  const founders = subs.filter((s) => s.plan === 'founder');
   const seats = countFounderSeats(subs, now.getTime());
-  const holds = founders.filter((s) => s.status === 'incomplete' && now.getTime() - parseTs((s.updated_date ?? s.created_date) as string | undefined) < RESERVATION_MS)
-    .map((s) => ({ tenant_id: s.tenant_id, minutes_left: Math.max(0, Math.ceil((RESERVATION_MS - (now.getTime() - parseTs((s.updated_date ?? s.created_date) as string | undefined))) / 60e3)) }));
+  const holds = activeHolds(subs, now.getTime()).map((h) => ({ tenant_id: h.tenant_id, minutes_left: Math.max(0, Math.ceil((RESERVATION_MS - (now.getTime() - h.started)) / 60e3)) }));
   return {
-    paying: { ...paying, total: paying.founder + paying.starter + paying.pro }, trials, past_due: pastDue, courtesy,
+    paying: { ...paying, total: paying.founder + paying.starter + paying.pro }, trials, expired_trials: expiredTrials, past_due: pastDue, courtesy,
     mrr_eur: mrr, arr_eur: r2(mrr * 12), collected_total_eur: cash(events), collected_30d_eur: cash(events.filter((e) => parseTs(e.occurred_at as string) >= cutoff)),
     founder: { cap: FOUNDER_CAP, taken: seats.taken, left: seats.left, holds, hold_minutes: RESERVATION_MS / 60e3 },
   };
 }
 
 /** Every shop with its owner, subscription, Stripe ids and WhatsApp use (trial quota where it applies). */
-export async function listTenants(db: Entities) {
+export async function listTenants(db: Entities, now = new Date()) {
   const [tenants, subs, owners] = await Promise.all([
     find(db.Tenant, {}, { sort: '-created_date', limit: 500 }), find(db.Subscription, {}), find(db.TenantUser, { role: 'owner', active: true }),
   ]);
@@ -59,13 +59,14 @@ export async function listTenants(db: Entities) {
   const out = [];
   for (const t of tenants) {
     const s = subOf.get(t.id);
+    const ts = trialState(s, now);
     const trial = s?.status === 'trialing';
     const since = trial ? Math.max(parseTs((s?.trial_start ?? s?.created_date) as string | undefined), parseTs(s?.wa_quota_reset_at as string | undefined)) : 0;
     const logs = await find(db.WhatsappLog, { tenant_id: t.id, direction: 'outbound' });
     const sent = logs.filter((m) => ['queued', 'sent', 'delivered', 'read', 'failed'].includes(String(m.status)) && parseTs(m.created_date) >= since).length;
     out.push({
       id: t.id, trade_name: t.trade_name, slug: t.slug, owner_email: (ownerOf.get(t.id)?.user_email as string) ?? null, created_date: t.created_date,
-      plan: t.plan, tenant_status: t.status, sub_status: (s?.status as string) ?? null, trial, manual_override: s?.manual_override === true, manual_note: (s?.manual_note as string) ?? null,
+      plan: t.plan, tenant_status: t.status, sub_status: (s?.status as string) ?? null, trial, trial_expired: ts.state === 'expired', trial_end: ts.ends_at, days_left: ts.days_left, manual_override: s?.manual_override === true, manual_note: (s?.manual_note as string) ?? null,
       stripe_customer_id: (s?.stripe_customer_id as string) ?? null, stripe_subscription_id: (s?.stripe_subscription_id as string) ?? null,
       current_period_end: (s?.current_period_end as string) ?? null, wa_sent: sent, wa_cap: trial ? TRIAL_WA_CAP : null, wa_reset_at: (s?.wa_quota_reset_at as string) ?? null,
     });
@@ -150,7 +151,7 @@ export async function handleAdmin(ctx: AdminCtx, body: Record<string, unknown>):
     switch (body.action) {
       case 'whoami': return { status: 200, body: { ok: true, email: actor } };
       case 'overview': return { status: 200, body: await overview(db, ctx.now) };
-      case 'tenants': return { status: 200, body: { tenants: await listTenants(db) } };
+      case 'tenants': return { status: 200, body: { tenants: await listTenants(db, ctx.now) } };
       case 'events': return { status: 200, body: { events: await billingFeed(db, Number(body.limit) || 100) } };
       case 'setPlan': return { status: 200, body: await setPlan(db, actor, body) };
       case 'clearOverride': return { status: 200, body: await clearOverride(db, actor, body.tenantId) };

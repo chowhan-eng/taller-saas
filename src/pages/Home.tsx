@@ -63,10 +63,10 @@ export default function Home() {
               Todo en un sitio, hecho por un técnico con más de 20 años de taller en Valencia.
             </p>
             <div className="lp-cta-row">
-              <a className="lp-btn primary" href="#demo">Pruébalo en tu móvil ahora →</a>
-              <a className="lp-btn ghost" href="#planes">Ver planes</a>
+              <a className="lp-btn primary" href="/onboarding">Empezar 14 días gratis · sin tarjeta →</a>
+              <a className="lp-btn ghost" href="#demo">Pruébalo en tu móvil ahora</a>
             </div>
-            <div className="lp-micro"><span>14 días gratis en Starter</span><span>Sin permanencia</span><span>Garantía de 30 días</span></div>
+            <div className="lp-micro"><span>14 días gratis</span><span>Sin tarjeta de crédito</span><span>Empieza en 2 minutos</span><span>Sin permanencia</span></div>
           </div>
           <div className="lp-frame"><InboxMockup /></div>
         </div>
@@ -187,14 +187,14 @@ export default function Home() {
             <div className="lp-plan">
               <h3>Starter</h3>
               <div className="pr">39 €<small> /mes</small></div>
-              <p className="then">14 días de prueba gratis</p>
+              <p className="then">14 días gratis · Sin tarjeta de crédito · Empieza en 2 minutos</p>
               <ul>
                 <Tick>Avisos automáticos de WhatsApp: entrada, presupuesto y «ya está listo» (400 conversaciones/mes)</Tick>
                 <Tick>Recepcionista IA de WhatsApp 24/7</Tick>
                 <Tick>Impulso de reseñas de Google al entregar</Tick>
               </ul>
-              <a className="lp-btn outline block" href="/onboarding?plan=starter">Empezar mis 14 días gratis</a>
-              <p className="fine">Pedimos la tarjeta al empezar y no se cobra nada si cancelas antes del día 15. Durante la prueba: hasta 50 mensajes de WhatsApp.</p>
+              <a className="lp-btn solid block" href="/onboarding?plan=starter">Empezar 14 días gratis (sin tarjeta)</a>
+              <p className="fine">No pedimos tarjeta. Durante la prueba: hasta 50 mensajes de WhatsApp. Al terminar, 39 €/mes solo si decides seguir; si no, los envíos se pausan.</p>
             </div>
             <div className="lp-plan">
               <h3>Pro</h3>
@@ -237,8 +237,8 @@ export default function Home() {
       <section className="lp-final">
         <div className="wrap">
           <h2>Tu próximo cliente puede recibir su aviso hoy mismo</h2>
-          <p>14 días de prueba gratis · Garantía de 30 días · Sin permanencia</p>
-          <a className="lp-btn primary" href="/onboarding">Empieza gratis · después 39 €/mes</a>
+          <p>14 días gratis · Sin tarjeta de crédito · Empieza en 2 minutos</p>
+          <a className="lp-btn primary" href="/onboarding">Empezar 14 días gratis (sin tarjeta)</a>
         </div>
       </section>
 
